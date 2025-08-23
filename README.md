@@ -101,7 +101,6 @@ The simplest working HTML file requires only:
 - Automatically falls back to first `<video>` and `<canvas>` elements found
 - No specific IDs required!
 
-
 ## Browser Support
 
 - Chrome/Chromium 60+
@@ -202,4 +201,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Issues
 
-If you encounter any bugs or have feature requests, please [open an issue](https://github.com/yourusername/kano-player/issues).
+If you encounter any bugs or have feature requests, please [open an issue](https://github.com/kanotown/kano-player/issues).
