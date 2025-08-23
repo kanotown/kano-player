@@ -115,7 +115,7 @@ The simplest working HTML file requires only:
 
 ### 🚀 Performance First
 
-- **Tiny Footprint**: **~33KB total** (HTML + minified JS) vs 50-100KB+ for other players
+- **Tiny Footprint**: **~33KB total** (HTML + minified JS) - smaller than most alternatives
 - **Pure Vanilla JS**: No React, Vue, or jQuery bloat
 - **Zero Dependencies**: No external libraries, CDNs, or frameworks to load
 - **Instant Startup**: Ready in milliseconds, no framework initialization
@@ -129,11 +129,10 @@ The simplest working HTML file requires only:
 
 ### 📊 Size Comparison
 
-| Player          | Bundle Size | Dependencies     | Setup            |
-| --------------- | ----------- | ---------------- | ---------------- |
-| Video.js        | ~100KB+     | jQuery/Framework | Complex          |
-| Plyr            | ~50KB+      | Build process    | Medium           |
-| **Kano Player** | **~33KB**   | **None**         | **Copy & paste** |
+| Player Type          | Bundle Size | Dependencies | Setup            |
+| -------------------- | ----------- | ------------ | ---------------- |
+| Popular players      | 50-300KB+   | Varies       | CDN or npm       |
+| **Kano Player**      | **~33KB**   | **None**     | **Copy & paste** |
 
 ## File Structure
 
