@@ -886,7 +886,6 @@ function draw() {
       ctx.stroke();
     }
 
-    // 10秒戻る（狭いキャンバスでは非表示）
     if (!isNarrowCanvas) {
       if (onStepBack && !dragSeekBar && !dragVolumeControl) {
         ctx.strokeStyle = "white";
@@ -931,7 +930,6 @@ function draw() {
       ctx.fillText("10", STEP_BACK_MARGIN + 6, canvas.height - 20);
     }
 
-    // 10秒進む（狭いキャンバスでは非表示）
     if (!isNarrowCanvas) {
       if (onStepForward && !dragSeekBar && !dragVolumeControl) {
         ctx.strokeStyle = "white";
@@ -1146,7 +1144,6 @@ function draw() {
       canvas.height - 20
     );
 
-    // フルスクリーンボタン
     const fullscreenButtonY = canvas.height - 30;
     const fullscreenTooltipY = canvas.height - SEEKBAR_HEIGHT - 37;
 
@@ -1205,7 +1202,6 @@ function draw() {
       ctx.stroke();
     }
 
-    // 時間表示（狭いキャンバスでは総時間を非表示）
     let txtTime = "";
     if (video.duration > 0) {
       let durM = Math.floor((video.duration - 0) / 60);
@@ -1381,7 +1377,6 @@ function keyDown(e) {
 
 // Mouse events
 function mouseClick(e) {
-  // 余白エリアのクリックは無視
   if (getMouseX(e) === -1 || getMouseY(e) === -1) return;
 
   if (finished) {
@@ -1437,7 +1432,6 @@ function mouseClick(e) {
     return;
   }
 
-  // 再生速度
   if (pressPlayBackTrigger) {
     for (let i = 0; i < 7; i++) {
       if (onPlayBacks[i]) {
@@ -1493,10 +1487,8 @@ function mouseClick(e) {
 function mouseDown(e) {
   if (finished) return;
 
-  // 余白エリアのクリックは無視
   if (getMouseX(e) === -1 || getMouseY(e) === -1) return;
 
-  // 再生速度変更メニュー表示中かチェック
   if (
     pressPlayBackTrigger &&
     mouseMoveX > theaterMargin &&
@@ -1507,7 +1499,6 @@ function mouseDown(e) {
     return;
   }
 
-  // シークバー上かチェック
   if (Math.abs(canvas.height - SEEKBAR_HEIGHT - mouseMoveY) < 8) {
     resume = playing;
     video.pause();
@@ -1517,9 +1508,7 @@ function mouseDown(e) {
       (mouseDragX - SEEKBAR_MARGIN) / (canvas.width - 2 * SEEKBAR_MARGIN);
     timeRate = Math.max(0, Math.min(1, timeRate));
     video.currentTime = (video.duration - DURATION_DIF) * timeRate;
-  }
-  // 音量調節バー上かチェック
-  else if (
+  } else if (
     mouseMoveX > VOLUME_MARGIN + 40 &&
     mouseMoveX < VOLUME_MARGIN + 115 &&
     mouseMoveY > canvas.height - 35 &&
@@ -1667,7 +1656,6 @@ function mouseMove(e) {
       offAllFlags();
       onPlayBackTrigger = true;
       onPlayBacks[Math.floor((mouseMoveY - speedMenuStartY) / 25)] = true;
-      // video.playbackRate = 4;
     } else if (Math.abs(canvas.height - SEEKBAR_HEIGHT - mouseMoveY) < 8) {
       document.body.style.cursor = "pointer";
       if (!onSeekBar) seekBallRad = 0;
@@ -1753,7 +1741,6 @@ function mouseMove(e) {
 }
 
 // Mouse coordinates
-// Calculate drawing area for fullscreen
 function getDrawingArea() {
   const rect = canvas.getBoundingClientRect();
   const canvasAspectRatio = canvas.width / canvas.height;
@@ -1762,13 +1749,11 @@ function getDrawingArea() {
   let drawWidth, drawHeight, offsetX, offsetY;
 
   if (rectAspectRatio > canvasAspectRatio) {
-    // Landscape screen: fit height, add horizontal margins
     drawHeight = rect.height;
     drawWidth = drawHeight * canvasAspectRatio;
     offsetX = (rect.width - drawWidth) / 2;
     offsetY = 0;
   } else {
-    // Portrait screen: fit width, add vertical margins
     drawWidth = rect.width;
     drawHeight = drawWidth / canvasAspectRatio;
     offsetX = 0;
@@ -1792,7 +1777,6 @@ function isClickInMargin(e) {
   const clickX = e.clientX - rect.left;
   const clickY = e.clientY - rect.top;
 
-  // 余白エリアのクリックか判定
   return (
     clickX < offsetX ||
     clickX > offsetX + drawWidth ||
@@ -1802,12 +1786,10 @@ function isClickInMargin(e) {
 }
 
 function getMouseX(e) {
-  // 余白エリアのクリックは無効
   if (isClickInMargin(e)) return -1;
 
   let rect = e.target.getBoundingClientRect();
 
-  // フルスクリーンかどうかを判定
   const isFullscreen =
     document.fullscreenElement ||
     document.webkitFullscreenElement ||
@@ -1824,12 +1806,10 @@ function getMouseX(e) {
 }
 
 function getMouseY(e) {
-  // 余白エリアのクリックは無効
   if (isClickInMargin(e)) return -1;
 
   let rect = e.target.getBoundingClientRect();
 
-  // フルスクリーンかどうかを判定
   const isFullscreen =
     document.fullscreenElement ||
     document.webkitFullscreenElement ||
@@ -1870,7 +1850,6 @@ function canvasZoom(e) {
   mouseY = getMouseY(e);
   if (mousePrevX == -1) mousePrevX = mouseX;
 
-  //            let control = (1 - Math.abs(mouseX - mousePrevX) / canvas.width);
   let zoomChange = true;
 
   if (e.timeStamp - timeStamp < 30) {
@@ -2072,19 +2051,15 @@ function isFullScreen() {
   }
 }
 
-// Auto-configure video element
+// Auto-configure
 if (video) {
   video.width = 0;
   video.height = 0;
 }
-
-// Auto-configure canvas element
 if (canvas) {
-  // Store original max-width if it exists
   if (canvas.style.maxWidth && canvas.style.maxWidth !== "") {
     originalMaxWidth = canvas.style.maxWidth;
   } else {
-    // Check computed style
     const computedStyle = window.getComputedStyle(canvas);
     if (computedStyle.maxWidth && computedStyle.maxWidth !== "none") {
       originalMaxWidth = computedStyle.maxWidth;

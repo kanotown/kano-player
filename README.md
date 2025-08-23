@@ -9,7 +9,7 @@ _See the player in action with sample video and captions_
 
 ## Features
 
-- **🪶 Lightweight**: < 9KB total - Pure vanilla JavaScript, no frameworks or dependencies
+- **🪶 Lightweight**: ~33KB minified - Pure vanilla JavaScript, no frameworks or dependencies
 - **⚡ Simple Setup**: No installation or build process needed
 - **🎮 Custom Video Controls**: Play/pause, seek, volume, playback speed (0.8x - 2.0x)
 - **🔍 Zoom & Pan**: Mouse wheel zoom up to 5x with drag-to-pan functionality
