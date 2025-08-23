@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kano Player - A scalable media player</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background: white;
+      }
+
+      #main {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+      }
+
+      #myCanvas {
+        width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main">
+      <h1>Kano Player - A scalable media player</h1>
+      <video
+        id="myVideo"
+        controlsList="nodownload"
+        playsinline
+        src="./penguin.mov"
+      ></video>
+      <canvas id="myCanvas"></canvas>
+    </div>
+    <script>
+      // Caption settings
+      const captions = [
+        {
+          startTime: 0,
+          endTime: 2.5,
+          text: "Caption Example",
+          fontSize: 50,
+          bold: true,
+          align: "center",
+          positionX: 0.5,
+          positionY: 0.8,
+          textColor: "white",
+          strokeColor: "#555",
+          strokeWidth: 8,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+        },
+        {
+          startTime: 0,
+          endTime: 20,
+          text: "Kano Player v0.1",
+          fontSize: 20,
+          bold: true,
+          align: "right",
+          positionX: 0.98,
+          positionY: 0.05,
+          textColor: "black",
+          strokeColor: "white",
+          strokeWidth: 1,
+          backgroundColor: "rgba(255, 255, 255, 0.8)",
+        },
+      ];
+      // Debug mode (displays time and coordinate info)
+      const debug = false;
+    </script>
+    <script src="js/kanoplayer.js"></script>
+  </body>
+</html>
