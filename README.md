@@ -1,6 +1,6 @@
 # Kano Player - A scalable media player
 
-A lightweight (~9KB total), vanilla JavaScript HTML5 video player with custom controls, zoom functionality, and caption support. No dependencies or build process required.
+A lightweight (~33KB total), vanilla JavaScript HTML5 video player with custom controls, zoom functionality, and caption support. No dependencies or build process required.
 
 ## Demo
 
@@ -14,13 +14,16 @@ _See the player in action with sample video and captions_
 - **🎮 Custom Video Controls**: Play/pause, seek, volume, playback speed (0.8x - 2.0x)
 - **🔍 Zoom & Pan**: Mouse wheel zoom up to 5x with drag-to-pan functionality
 - **📺 Fullscreen Support**: Cross-browser fullscreen with proper coordinate handling
+- **📐 Dynamic Aspect Ratio**: Automatically adapts to any video aspect ratio (16:9, 4:3, 9:16, etc.)
 - **💬 Caption System**: Rich caption support with customizable styling
 - **📱 Responsive Design**: Adaptive layout for different screen sizes
 - **⌨️ Keyboard Shortcuts**: Space (play/pause), arrows (seek/volume), F (fullscreen), M (mute)
 
 ## Quick Start
 
-1. **Download** [`kanoplayer.js`](js/kanoplayer.js) (or copy-paste the code)
+1. **Download** either version:
+   - [`kanoplayer.js`](js/kanoplayer.js) (~58KB - development version with comments)
+   - [`kanoplayer.min.js`](js/kanoplayer.min.js) (~33KB - minified production version)
 
 2. **Create an HTML file** with your video:
 
@@ -33,7 +36,7 @@ _See the player in action with sample video and captions_
   <body>
     <video src="your-video.mp4" playsinline></video>
     <canvas style="width: 100%"></canvas>
-    <script src="kanoplayer.js"></script>
+    <script src="kanoplayer.min.js"></script>
   </body>
 </html>
 ```
@@ -90,7 +93,7 @@ The simplest working HTML file requires only:
   <body>
     <video src="./penguin.mov" playsinline></video>
     <canvas style="width: 100%"></canvas>
-    <script src="js/kanoplayer.js"></script>
+    <script src="js/kanoplayer.min.js"></script>
   </body>
 </html>
 ```
@@ -112,7 +115,7 @@ The simplest working HTML file requires only:
 
 ### 🚀 Performance First
 
-- **Tiny Footprint**: **< 9KB total** (HTML + JS) vs 50-100KB+ for other players
+- **Tiny Footprint**: **~33KB total** (HTML + minified JS) vs 50-100KB+ for other players
 - **Pure Vanilla JS**: No React, Vue, or jQuery bloat
 - **Zero Dependencies**: No external libraries, CDNs, or frameworks to load
 - **Instant Startup**: Ready in milliseconds, no framework initialization
@@ -130,7 +133,7 @@ The simplest working HTML file requires only:
 | --------------- | ----------- | ---------------- | ---------------- |
 | Video.js        | ~100KB+     | jQuery/Framework | Complex          |
 | Plyr            | ~50KB+      | Build process    | Medium           |
-| **Kano Player** | **< 9KB**   | **None**         | **Copy & paste** |
+| **Kano Player** | **~33KB**   | **None**         | **Copy & paste** |
 
 ## File Structure
 
@@ -139,11 +142,12 @@ kano-player/
 ├── index.html          # Full-featured example (~2KB)
 ├── index-min.html      # Minimal setup (300 bytes!)
 ├── js/
-│   └── kanoplayer.js   # Core player functionality (~8KB)
+│   ├── kanoplayer.js     # Development version (~58KB)
+│   └── kanoplayer.min.js # Minified version (~33KB)
 └── README.md
 ```
 
-**Total footprint: < 9KB** (excluding video files)
+**Total footprint: ~33KB** (excluding video files)
 
 ### 🎯 True Minimal Example
 
@@ -158,7 +162,7 @@ kano-player/
   <body>
     <video src="./penguin.mov" playsinline></video>
     <canvas style="width: 100%"></canvas>
-    <script src="js/kanoplayer.js"></script>
+    <script src="js/kanoplayer.min.js"></script>
   </body>
 </html>
 ```

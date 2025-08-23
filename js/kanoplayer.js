@@ -1,22 +1,23 @@
 "use strict";
 
-// Auto-detect video and canvas elements
-const video = document.getElementById("myVideo") || 
-              document.querySelector("video") || 
-              (() => {
-                console.error("Kano Player: No video element found. Please add a video element with id='myVideo' or any video element.");
-                return null;
-              })();
+const video =
+  document.getElementById("myVideo") ||
+  document.querySelector("video") ||
+  (() => {
+    console.error("Kano Player: No video element found.");
+    return null;
+  })();
 
-const canvas = document.getElementById("myCanvas") || 
-               document.querySelector("canvas") || 
-               (() => {
-                 console.error("Kano Player: No canvas element found. Please add a canvas element with id='myCanvas' or any canvas element.");
-                 return null;
-               })();
+const canvas =
+  document.getElementById("myCanvas") ||
+  document.querySelector("canvas") ||
+  (() => {
+    console.error("Kano Player: No canvas element found.");
+    return null;
+  })();
 
 if (!video || !canvas) {
-  console.error("Kano Player: Required elements not found. Initialization stopped.");
+  console.error("Kano Player: Required elements not found.");
 } else {
   canvas.oncontextmenu = function () {
     return false;
@@ -44,8 +45,8 @@ let bufCurrentTime = 0;
 
 const MAX_ALPHA = 0.6;
 const MAX_SCALE = 5;
-const VIDEO_WIDTH = 1920;
-const VIDEO_HEIGHT = 1080;
+let VIDEO_WIDTH = 1920;
+let VIDEO_HEIGHT = 1080;
 const VIDEO_PADDING = 0;
 const DURATION_DIF = 0.17;
 
@@ -116,6 +117,12 @@ let replayPosY;
 let replayHeight;
 let onReplay = false;
 
+// Metadata loaded flag
+let metadataLoaded = false;
+
+// Store original max-width for restoring after fullscreen/theater
+let originalMaxWidth = "1200px";
+
 // Event listeners
 document.addEventListener("keydown", keyDown);
 canvas.addEventListener("click", mouseClick);
@@ -138,7 +145,7 @@ window.addEventListener(
       maxWidth = (window.innerHeight * VIDEO_WIDTH) / VIDEO_HEIGHT - 10;
     }
     if (!theaterMode) {
-      maxWidth = Math.min(maxWidth, 1200);
+      maxWidth = Math.min(maxWidth, parseInt(originalMaxWidth) || 1200);
     }
     if (canvas) canvas.style.maxWidth = maxWidth + "px";
 
@@ -167,8 +174,9 @@ function handleFSevent() {
 
   if (isFullscreenMode && !isInFullscreen) {
     isFullscreenMode = false;
-    const mainEl = document.getElementById("main"); if (mainEl) mainEl.style.background = "white";
-    if (canvas) canvas.style.maxWidth = "1200px";
+    const mainEl = document.getElementById("main");
+    if (mainEl) mainEl.style.background = "white";
+    if (canvas) canvas.style.maxWidth = originalMaxWidth;
     init();
   }
 }
@@ -233,6 +241,22 @@ video.addEventListener("waiting", function (event) {
 
 video.addEventListener("canplay", function (event) {
   videoLoading = false;
+});
+
+video.addEventListener("loadedmetadata", function (event) {
+  // Update video dimensions based on actual video
+  VIDEO_WIDTH = video.videoWidth || 1920;
+  VIDEO_HEIGHT = video.videoHeight || 1080;
+
+  if (!metadataLoaded) {
+    metadataLoaded = true;
+    // Initialize canvas with correct aspect ratio
+    init();
+    draw();
+  } else {
+    // Reinitialize if metadata loads again
+    init();
+  }
 });
 
 video.addEventListener("loadeddata", function (event) {
@@ -1933,8 +1957,9 @@ function toggleFullscreen() {
   } else {
     cancelFullScreen();
     isFullscreenMode = false;
-    const mainEl = document.getElementById("main"); if (mainEl) mainEl.style.background = "white";
-    if (canvas) canvas.style.maxWidth = "1200px";
+    const mainEl = document.getElementById("main");
+    if (mainEl) mainEl.style.background = "white";
+    if (canvas) canvas.style.maxWidth = originalMaxWidth;
   }
   onFullscreen = false;
   init();
@@ -1967,8 +1992,9 @@ function flipTheaterMode() {
     theaterTmp = true;
     theaterMode = false;
 
-    const mainEl = document.getElementById("main"); if (mainEl) mainEl.style.background = "white";
-    if (canvas) canvas.style.maxWidth = "1200px";
+    const mainEl = document.getElementById("main");
+    if (mainEl) mainEl.style.background = "white";
+    if (canvas) canvas.style.maxWidth = originalMaxWidth;
   }
   onTheater = false;
 }
@@ -2052,24 +2078,24 @@ if (video) {
   video.height = 0;
 }
 
-// Auto-configure canvas element (for minimal setup)
+// Auto-configure canvas element
 if (canvas) {
-  const computedStyle = window.getComputedStyle(canvas);
-  const hasInlineWidth = canvas.style.width && canvas.style.width !== '';
-  const hasComputedWidth = computedStyle.width && computedStyle.width !== "auto" && computedStyle.width !== "0px";
-
-  if (!hasInlineWidth && !hasComputedWidth) {
-    canvas.style.display = "block";
-    canvas.style.margin = "0 auto";
-    canvas.style.width = "600px";
-    canvas.style.maxWidth = "100%";
-    canvas.style.height = "auto";
-    canvas.style.border = "1px solid #ddd";
-    canvas.style.cursor = "pointer";
+  // Store original max-width if it exists
+  if (canvas.style.maxWidth && canvas.style.maxWidth !== "") {
+    originalMaxWidth = canvas.style.maxWidth;
+  } else {
+    // Check computed style
+    const computedStyle = window.getComputedStyle(canvas);
+    if (computedStyle.maxWidth && computedStyle.maxWidth !== "none") {
+      originalMaxWidth = computedStyle.maxWidth;
+    }
   }
+
+  canvas.style.display = "block";
+  canvas.style.margin = "0 auto";
 }
 
-// Default configuration (can be overridden in HTML)
+// Default configuration
 if (typeof captions === "undefined") {
   window.captions = [];
 }
@@ -2077,10 +2103,8 @@ if (typeof debug === "undefined") {
   window.debug = false;
 }
 
-// Initialize only if both elements are found
-if (video && canvas && ctx) {
-  init();
-  draw();
-} else {
-  console.error("Kano Player: Cannot initialize - missing required elements.");
-}
+VIDEO_WIDTH = video.videoWidth || 1920;
+VIDEO_HEIGHT = video.videoHeight || 1080;
+metadataLoaded = true;
+init();
+draw();

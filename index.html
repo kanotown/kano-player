@@ -9,10 +9,10 @@
         margin: 0;
         padding: 0;
         font-family: Arial, sans-serif;
-        background: white;
       }
 
-      #main {
+      #main,
+      #myCanvas {
         max-width: 1200px;
         margin: 0 auto;
       }
@@ -23,11 +23,8 @@
         margin-bottom: 20px;
       }
 
-      #myCanvas {
-        width: 100%;
-        height: auto;
-        border: 1px solid #ddd;
-        cursor: pointer;
+      :fullscreen {
+        background-color: #000000;
       }
     </style>
   </head>
@@ -40,7 +37,7 @@
         playsinline
         src="./penguin.mov"
       ></video>
-      <canvas id="myCanvas"></canvas>
+      <canvas id="myCanvas" style="width: 100%"></canvas>
     </div>
     <script>
       // Caption settings
@@ -77,6 +74,6 @@
       // Debug mode (displays time and coordinate info)
       const debug = false;
     </script>
-    <script src="js/kanoplayer.js"></script>
+    <script src="js/kanoplayer.min.js"></script>
   </body>
 </html>
