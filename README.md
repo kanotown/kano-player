@@ -101,11 +101,6 @@ The simplest working HTML file requires only:
 - Automatically falls back to first `<video>` and `<canvas>` elements found
 - No specific IDs required!
 
-**Zero CSS required!** The JavaScript automatically applies:
-
-- 600px default width (responsive with max-width: 100%)
-- Center alignment
-- Basic styling (border, pointer cursor)
 
 ## Browser Support
 
