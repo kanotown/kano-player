@@ -30,7 +30,7 @@ const KP = {
     HEIGHT: 1080,
     scale: 1,
     scaleIndex: 0,
-    loading: true,
+    loading: false,
     bufCurrentTime: 0,
     metadataLoaded: false,
   },
@@ -256,7 +256,7 @@ function init() {
     KP.layout.fullscreenMargin =
       KP.layout.theaterMargin + speedButtonWidth + buttonSpacing;
   } else {
-    KP.layout.VOLUME_MARGIN = KP.layout.VOLUME_MARGIN_NORMAL;
+    KP.layout.VOLUME_MARGIN = KP.config.VOLUME_MARGIN_NORMAL;
     KP.layout.theaterMargin = canvas.width - 220;
     KP.layout.fullscreenMargin = canvas.width - 160;
   }
@@ -281,6 +281,10 @@ video.addEventListener("canplay", function (event) {
   KP.video.loading = false;
 });
 
+video.addEventListener("canplaythrough", function (event) {
+  KP.video.loading = false;
+});
+
 video.addEventListener("loadedmetadata", function (event) {
   KP.video.WIDTH = video.videoWidth || 1920;
   KP.video.HEIGHT = video.videoHeight || 1080;
@@ -295,6 +299,7 @@ video.addEventListener("loadedmetadata", function (event) {
 });
 
 video.addEventListener("loadeddata", function (event) {
+  KP.video.loading = false;
   if (!KP.playback.playing) {
     draw();
   }
@@ -529,7 +534,7 @@ function draw() {
     ctx.closePath();
     ctx.fill();
 
-    KP.animation.alpha -= 0.02;
+    KP.animation.alpha -= 0.01;
     if (KP.animation.alpha < 0) {
       KP.animation.play = false;
     }
@@ -555,7 +560,7 @@ function draw() {
     ctx.lineTo(23, 45);
     ctx.stroke();
 
-    KP.animation.alpha -= 0.02;
+    KP.animation.alpha -= 0.01;
     if (KP.animation.alpha < 0) {
       KP.animation.pause = false;
     }
@@ -588,7 +593,7 @@ function draw() {
     ctx.font = '48px "Arial"';
     ctx.fillText("10", 25, 20);
 
-    KP.animation.alpha -= 0.02;
+    KP.animation.alpha -= 0.01;
     if (KP.animation.alpha < 0) {
       KP.animation.stepBack = false;
     }
@@ -621,7 +626,7 @@ function draw() {
     ctx.font = '48px "Arial"';
     ctx.fillText("10", 25, 20);
 
-    KP.animation.alpha -= 0.02;
+    KP.animation.alpha -= 0.01;
     if (KP.animation.alpha < 0) {
       KP.animation.stepForward = false;
     }
