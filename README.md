@@ -1,6 +1,6 @@
 # Kano Player - A scalable media player
 
-A lightweight (~33KB total), vanilla JavaScript HTML5 video player with custom controls, zoom functionality, and caption support. No dependencies or build process required.
+A lightweight (~38KB total), vanilla JavaScript HTML5 video player with custom controls, zoom functionality, and caption support. No dependencies or build process required.
 
 ## Demo
 
@@ -9,7 +9,7 @@ _See the player in action with sample video and captions_
 
 ## Features
 
-- **🪶 Lightweight**: ~33KB minified - Pure vanilla JavaScript, no frameworks or dependencies
+- **🪶 Lightweight**: ~38KB minified - Pure vanilla JavaScript, no frameworks or dependencies
 - **⚡ Simple Setup**: No installation or build process needed
 - **🎮 Custom Video Controls**: Play/pause, seek, volume, playback speed (0.8x - 2.0x)
 - **🔍 Zoom & Pan**: Mouse wheel zoom up to 5x with drag-to-pan functionality
@@ -22,8 +22,9 @@ _See the player in action with sample video and captions_
 ## Quick Start
 
 1. **Download** either version:
+
    - [`kanoplayer.js`](js/kanoplayer.js) (~58KB - development version with comments)
-   - [`kanoplayer.min.js`](js/kanoplayer.min.js) (~33KB - minified production version)
+   - [`kanoplayer.min.js`](js/kanoplayer.min.js) (~38KB - minified production version)
 
 2. **Create an HTML file** with your video:
 
@@ -59,18 +60,29 @@ const captions = [
     startTime: 0,
     endTime: 5,
     text: "Your caption text",
-    fontSize: 50,
-    bold: true,
-    align: "center",
-    positionX: 0.5,
-    positionY: 0.8,
-    textColor: "white",
-    strokeColor: "#555",
-    strokeWidth: 2,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    fontSize: 50, // Default: 20
+    bold: true, // Optional
+    align: "center", // Default: "center" (left, center, right)
+    positionX: 0.5, // Default: 0.5 (0.0 = left, 1.0 = right)
+    positionY: 0.8, // Default: 0.5 (0.0 = top, 1.0 = bottom)
+    textColor: "white", // Default: "white"
+    strokeColor: "#555", // Default: "black"
+    strokeWidth: 2, // Default: 0 (no outline)
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Optional
   },
 ];
 ```
+
+**Caption Defaults**: All properties except `startTime`, `endTime`, and `text` are optional. Missing properties use these defaults:
+
+- `fontSize`: 20
+- `align`: "center"
+- `positionX`: 0.5 (center)
+- `positionY`: 0.5 (center)
+- `textColor`: "white"
+- `strokeColor`: "black"
+- `strokeWidth`: 0 (no outline)
+- `backgroundColor`: none (transparent)
 
 ### Debug Mode
 
@@ -115,7 +127,7 @@ The simplest working HTML file requires only:
 
 ### 🚀 Performance First
 
-- **Tiny Footprint**: **~33KB total** (HTML + minified JS) - smaller than most alternatives
+- **Tiny Footprint**: **~38KB total** (HTML + minified JS) - smaller than most alternatives
 - **Pure Vanilla JS**: No React, Vue, or jQuery bloat
 - **Zero Dependencies**: No external libraries, CDNs, or frameworks to load
 - **Instant Startup**: Ready in milliseconds, no framework initialization
@@ -129,10 +141,10 @@ The simplest working HTML file requires only:
 
 ### 📊 Size Comparison
 
-| Player Type          | Bundle Size | Dependencies | Setup            |
-| -------------------- | ----------- | ------------ | ---------------- |
-| Popular players      | 50-300KB+   | Varies       | CDN or npm       |
-| **Kano Player**      | **~33KB**   | **None**     | **Copy & paste** |
+| Player Type     | Bundle Size | Dependencies | Setup            |
+| --------------- | ----------- | ------------ | ---------------- |
+| Popular players | 50-300KB+   | Varies       | CDN or npm       |
+| **Kano Player** | **~38KB**   | **None**     | **Copy & paste** |
 
 ## File Structure
 
@@ -142,11 +154,11 @@ kano-player/
 ├── index-min.html      # Minimal setup (300 bytes!)
 ├── js/
 │   ├── kanoplayer.js     # Development version (~58KB)
-│   └── kanoplayer.min.js # Minified version (~33KB)
+│   └── kanoplayer.min.js # Minified version (~38KB)
 └── README.md
 ```
 
-**Total footprint: ~33KB** (excluding video files)
+**Total footprint: ~38KB** (excluding video files)
 
 ### 🎯 True Minimal Example
 

@@ -1,6 +1,141 @@
 "use strict";
 
-const video =
+const KP = {
+  // DOM elements
+  elements: {
+    video: null,
+    canvas: null,
+    ctx: null,
+  },
+
+  // Configuration constants
+  config: {
+    MAX_ALPHA: 0.6,
+    MAX_SCALE: 5,
+    VIDEO_PADDING: 0,
+    DURATION_DIF: 0.17,
+    SEEKBAR_HEIGHT: 55,
+    SEEKBAR_MARGIN: 20,
+    PLAY_PAUSE_MARGIN: 2 * 20 - 5,
+    STEP_BACK_MARGIN: 2 * 20 + 55,
+    STEP_FORWARD_MARGIN: 2 * 20 + 105,
+    VOLUME_MARGIN_NORMAL: 2 * 20 + 145,
+    FACE_TRACE_MARGIN: 2 * 20 + 300,
+    FULLSCREEN_MARGIN: 2 * 20 + 350,
+  },
+
+  // Video state
+  video: {
+    WIDTH: 1920,
+    HEIGHT: 1080,
+    scale: 1,
+    scaleIndex: 0,
+    loading: true,
+    bufCurrentTime: 0,
+    metadataLoaded: false,
+  },
+
+  // Mouse state
+  mouse: {
+    press: false,
+    drag: false,
+    x: 500,
+    y: 150,
+    moveX: 0,
+    moveY: 0,
+    dragX: 0,
+    dragY: 0,
+    xAnytime: 0,
+    yAnytime: 0,
+    imageDifX: 0,
+    imageDifY: 0,
+    prevX: -1,
+  },
+
+  // Coordinates
+  coords: {
+    left: 0,
+    width: 0,
+    top: 0,
+    height: 0,
+    leftBuf: 0,
+    topBuf: 0,
+  },
+
+  // Animation state
+  animation: {
+    play: false,
+    pause: false,
+    stepBack: false,
+    stepForward: false,
+    alpha: 0,
+    loadIndex: 0,
+    fadeAlpha: 0,
+    seekBallRad: 0,
+    stopCount: 100,
+  },
+
+  // Playback state
+  playback: {
+    playing: false,
+    finished: false,
+    resume: false,
+  },
+
+  // UI state flags
+  ui: {
+    onCanvas: false,
+    onSeekBar: false,
+    pressSeekBar: false,
+    dragSeekBar: false,
+    onPlayPause: false,
+    onStepBack: false,
+    onStepForward: false,
+    onVolume: false,
+    onVolumeControl: false,
+    dragVolumeControl: false,
+    onTheater: false,
+    theaterMode: false,
+    theaterTmp: false,
+    onFullscreen: false,
+    isFullscreenMode: false,
+    onFaceTrace: false,
+    faceTrace: false,
+    onReplay: false,
+    fading: false,
+    pressOnController: false,
+    dragOnController: false,
+    onMediaControl: false,
+    onPlayBackTrigger: false,
+    pressPlayBackTrigger: false,
+    onPlayBacks: [false, false, false, false, false, false, false],
+    onVideoRate0_7: false,
+    onVideoRate1_0: false,
+    onVideoRate1_5: false,
+    onVideoRate2_0: false,
+  },
+
+  // Layout
+  layout: {
+    VOLUME_MARGIN: 0,
+    theaterMargin: 0,
+    fullscreenMargin: 0,
+    isNarrowCanvas: false,
+    replayPosY: 0,
+    replayHeight: 0,
+    originalMaxWidth: "1200px",
+    scrollPosBuf: 0,
+    canvasWidthBuf: 0,
+  },
+
+  // System
+  system: {
+    timeStamp: 0,
+  },
+};
+
+// Initialize DOM elements
+KP.elements.video =
   document.getElementById("myVideo") ||
   document.querySelector("video") ||
   (() => {
@@ -8,7 +143,7 @@ const video =
     return null;
   })();
 
-const canvas =
+KP.elements.canvas =
   document.getElementById("myCanvas") ||
   document.querySelector("canvas") ||
   (() => {
@@ -16,112 +151,18 @@ const canvas =
     return null;
   })();
 
-if (!video || !canvas) {
-  console.error("Kano Player: Required elements not found.");
-} else {
-  canvas.oncontextmenu = function () {
-    return false;
-  };
-}
+KP.elements.canvas.oncontextmenu = function () {
+  return false;
+};
 
-const ctx = canvas ? canvas.getContext("2d") : null;
+KP.elements.ctx = KP.elements.canvas
+  ? KP.elements.canvas.getContext("2d")
+  : null;
 
-let press = false;
-let drag = false;
-let playAnime = false;
-let pauseAnime = false;
-let stepBackAnime = false;
-let stepForwardAnime = false;
-let alpha = 0;
-let videoScale = 1;
-let videoScaleIndex = 0;
-let mouseX = 500;
-let mouseY = 150;
-let imageDifX = 0;
-let imageDifY = 0;
-let videoLoading = true;
-let loadAnimeIndex = 0;
-let bufCurrentTime = 0;
-
-const MAX_ALPHA = 0.6;
-const MAX_SCALE = 5;
-let VIDEO_WIDTH = 1920;
-let VIDEO_HEIGHT = 1080;
-const VIDEO_PADDING = 0;
-const DURATION_DIF = 0.17;
-
-const SEEKBAR_HEIGHT = 55;
-const SEEKBAR_MARGIN = 20;
-
-let coordLeft;
-let coordWidth;
-let coordTop;
-let coordHeight;
-let coordLeftBuf;
-let coordTopBuf;
-let mouseMoveX;
-let mouseMoveY;
-let mouseDragX;
-let mouseDragY;
-let mouseXanytime;
-let mouseYanytime;
-
-// Media controls
-const PLAY_PAUSE_MARGIN = 2 * SEEKBAR_MARGIN - 5;
-const STEP_BACK_MARGIN = 2 * SEEKBAR_MARGIN + 55;
-const STEP_FORWARD_MARGIN = 2 * SEEKBAR_MARGIN + 105;
-const VOLUME_MARGIN_NORMAL = 2 * SEEKBAR_MARGIN + 145;
-let VOLUME_MARGIN;
-let theaterMargin;
-let fullscreenMargin;
-let isNarrowCanvas;
-let playing = false;
-let onSeekBar = false;
-let pressSeekBar = false;
-let dragSeekBar = false;
-let resume = false;
-let onPlayPause = false;
-let onStepBack = false;
-let onStepForward = false;
-let onVolume = false;
-let onVolumeControl = false;
-let dragVolumeControl = false;
-let onTheater = false;
-let theaterMode = false;
-let theaterTmp = false;
-let onVideoRate0_7 = false;
-let onVideoRate1_0 = false;
-let onVideoRate1_5 = false;
-let onVideoRate2_0 = false;
-let onCanvas = false;
-let fading = false;
-let pressOnContoroller = false;
-let dragOnController = false;
-let fadeAlpha = 0;
-let seekBallRad = 0;
-let stopCount = 100;
-let onMediaControl = false;
-let onPlayBackTrigger = false;
-let pressPlayBackTrigger = false;
-let onPlayBacks = [false, false, false, false, false, false, false];
-
-const FACE_TRACE_MARGIN = 2 * SEEKBAR_MARGIN + 300;
-const FULLSCREEN_MARGIN = 2 * SEEKBAR_MARGIN + 350;
-let faceTrace = false;
-let onFaceTrace = false;
-let onFullscreen = false;
-let isFullscreenMode = false;
-
-let finished = false;
-let replayPosY;
-let replayHeight;
-let onReplay = false;
-
-// Metadata loaded flag
-let metadataLoaded = false;
-
-// Store original max-width for restoring after fullscreen/theater
-let originalMaxWidth = "1200px";
+// Aliases for compatibility
+const video = KP.elements.video;
+const canvas = KP.elements.canvas;
+const ctx = KP.elements.ctx;
 
 // Event listeners
 document.addEventListener("keydown", keyDown);
@@ -137,15 +178,18 @@ window.addEventListener(
   function () {
     let maxWidth = 0;
     if (
-      (window.innerWidth * VIDEO_HEIGHT) / VIDEO_WIDTH <=
+      (window.innerWidth * KP.video.HEIGHT) / KP.video.WIDTH <=
       window.innerHeight
     ) {
       maxWidth = window.innerWidth;
     } else {
-      maxWidth = (window.innerHeight * VIDEO_WIDTH) / VIDEO_HEIGHT - 10;
+      maxWidth = (window.innerHeight * KP.video.WIDTH) / KP.video.HEIGHT - 10;
     }
-    if (!theaterMode) {
-      maxWidth = Math.min(maxWidth, parseInt(originalMaxWidth) || 1200);
+    if (!KP.ui.theaterMode) {
+      maxWidth = Math.min(
+        maxWidth,
+        parseInt(KP.layout.originalMaxWidth) || 1200
+      );
     }
     if (canvas) canvas.style.maxWidth = maxWidth + "px";
 
@@ -166,101 +210,92 @@ function handleFSevent() {
     (document.msFullscreenElement !== undefined &&
       document.msFullscreenElement !== null);
 
-  if (theaterMode && !isInFullscreen) {
-    theaterTmp = true;
-    theaterMode = false;
+  if (KP.ui.theaterMode && !isInFullscreen) {
+    KP.ui.theaterTmp = true;
+    KP.ui.theaterMode = false;
     init();
   }
 
-  if (isFullscreenMode && !isInFullscreen) {
-    isFullscreenMode = false;
+  if (KP.ui.isFullscreenMode && !isInFullscreen) {
+    KP.ui.isFullscreenMode = false;
     const mainEl = document.getElementById("main");
     if (mainEl) mainEl.style.background = "white";
-    if (canvas) canvas.style.maxWidth = originalMaxWidth;
+    if (canvas) canvas.style.maxWidth = KP.layout.originalMaxWidth;
     init();
   }
 }
 
 function init() {
-  canvas.width = theaterTmp ? canvasWidthBuf : canvas.clientWidth;
-  canvas.height = (canvas.width * VIDEO_HEIGHT) / VIDEO_WIDTH + VIDEO_PADDING;
+  canvas.width = KP.ui.theaterTmp
+    ? KP.layout.canvasWidthBuf
+    : canvas.clientWidth;
+  canvas.height =
+    (canvas.width * KP.video.HEIGHT) / KP.video.WIDTH + KP.config.VIDEO_PADDING;
 
-  coordLeft = 0;
-  coordWidth = canvas.width;
-  coordTop = 0;
-  coordHeight = canvas.height - VIDEO_PADDING;
-  videoScale = 1;
-  videoScaleIndex = 0;
+  KP.coords.left = 0;
+  KP.coords.width = canvas.width;
+  KP.coords.top = 0;
+  KP.coords.height = canvas.height - KP.config.VIDEO_PADDING;
+  KP.video.scale = 1;
+  KP.video.scaleIndex = 0;
 
   // Compact layout for narrow canvas
-  isNarrowCanvas = canvas.width <= 600;
+  KP.layout.isNarrowCanvas = canvas.width <= 600;
 
-  if (isNarrowCanvas) {
+  if (KP.layout.isNarrowCanvas) {
     // Hide 10s buttons on narrow canvas
     const playPauseWidth = 30;
     const volumeControlWidth = 120;
     const speedButtonWidth = 40;
-    const fullscreenButtonWidth = 40;
-    const timeDisplayWidth = 80;
     const buttonSpacing = 15;
 
     // Position after play/pause button
-    VOLUME_MARGIN = SEEKBAR_MARGIN + playPauseWidth + 20;
-    theaterMargin = VOLUME_MARGIN + volumeControlWidth + buttonSpacing;
-    fullscreenMargin = theaterMargin + speedButtonWidth + buttonSpacing;
+    KP.layout.VOLUME_MARGIN = KP.config.SEEKBAR_MARGIN + playPauseWidth + 20;
+    KP.layout.theaterMargin =
+      KP.layout.VOLUME_MARGIN + volumeControlWidth + buttonSpacing;
+    KP.layout.fullscreenMargin =
+      KP.layout.theaterMargin + speedButtonWidth + buttonSpacing;
   } else {
-    VOLUME_MARGIN = VOLUME_MARGIN_NORMAL;
-    theaterMargin = canvas.width - 220;
-    fullscreenMargin = canvas.width - 160;
+    KP.layout.VOLUME_MARGIN = KP.layout.VOLUME_MARGIN_NORMAL;
+    KP.layout.theaterMargin = canvas.width - 220;
+    KP.layout.fullscreenMargin = canvas.width - 160;
   }
 
   // Replay button position
-  const buttonWidth = 200;
   const buttonHeight = 80;
-  replayPosY = (canvas.height - buttonHeight) / 2;
-  replayHeight = buttonHeight;
+  KP.layout.replayPosY = (canvas.height - buttonHeight) / 2;
+  KP.layout.replayHeight = buttonHeight;
 
-  if (theaterTmp) {
-    scrollTo(0, scrollPosBuf);
-    theaterTmp = false;
+  if (KP.ui.theaterTmp) {
+    scrollTo(0, KP.layout.scrollPosBuf);
+    KP.ui.theaterTmp = false;
   }
 }
 
-let isIE = false;
-function msieversion() {
-  const ua = window.navigator.userAgent;
-  const msie = ua.indexOf("MSIE ");
-  isIE = msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./);
-}
-msieversion();
-
 video.addEventListener("waiting", function (event) {
-  bufCurrentTime = video.currentTime;
-  videoLoading = true;
+  KP.video.bufCurrentTime = video.currentTime;
+  KP.video.loading = true;
 });
 
 video.addEventListener("canplay", function (event) {
-  videoLoading = false;
+  KP.video.loading = false;
 });
 
 video.addEventListener("loadedmetadata", function (event) {
-  // Update video dimensions based on actual video
-  VIDEO_WIDTH = video.videoWidth || 1920;
-  VIDEO_HEIGHT = video.videoHeight || 1080;
+  KP.video.WIDTH = video.videoWidth || 1920;
+  KP.video.HEIGHT = video.videoHeight || 1080;
 
-  if (!metadataLoaded) {
-    metadataLoaded = true;
-    // Initialize canvas with correct aspect ratio
+  if (!KP.video.metadataLoaded) {
+    KP.video.metadataLoaded = true;
     init();
     draw();
   } else {
-    // Reinitialize if metadata loads again
     init();
   }
 });
 
 video.addEventListener("loadeddata", function (event) {
-  if (!playing) {
+  if (!KP.playback.playing) {
     draw();
   }
 });
@@ -274,18 +309,14 @@ function draw() {
   // Video scaling
   ctx.save();
   ctx.translate(0, 0);
-  ctx.scale(videoScale, videoScale);
-  if (isIE) {
-    ctx.drawImage(video, -coordLeft, -coordTop, canvas.width, canvas.height);
-  } else {
-    ctx.drawImage(
-      video,
-      -coordLeft,
-      -coordTop + VIDEO_PADDING / 2,
-      canvas.width,
-      canvas.height - VIDEO_PADDING
-    );
-  }
+  ctx.scale(KP.video.scale, KP.video.scale);
+  ctx.drawImage(
+    video,
+    -KP.coords.left,
+    -KP.coords.top + KP.config.VIDEO_PADDING / 2,
+    canvas.width,
+    canvas.height - KP.config.VIDEO_PADDING
+  );
 
   // Captions
   for (let c = 0; c < captions.length; c++) {
@@ -298,14 +329,23 @@ function draw() {
 
     if (video.currentTime >= startTime && video.currentTime < endTime) {
       if (caption.text !== undefined) {
-        let fontSize = caption.fontSize * (canvas.width / 1124);
+        // Apply defaults
+        const fontSize = (caption.fontSize || 20) * (canvas.width / 1124);
+        const align = caption.align !== undefined ? caption.align : "center";
+        const positionX =
+          caption.positionX !== undefined ? caption.positionX : 0.5;
+        const positionY =
+          caption.positionY !== undefined ? caption.positionY : 0.5;
+        const textColor = caption.textColor || "white";
+        const strokeColor = caption.strokeColor || "black";
+        const strokeWidth =
+          caption.strokeWidth !== undefined ? caption.strokeWidth : 0;
+
         let lineHeight = 1.3;
 
         ctx.font =
-          (caption.bold ? "bold " : "") +
-          fontSize +
-          'px "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif';
-        ctx.textAlign = caption.align;
+          (caption.bold ? "bold " : "") + fontSize + 'px "Meiryo", sans-serif';
+        ctx.textAlign = align;
 
         let text = caption.text;
         let lines = text.split("\n");
@@ -319,9 +359,9 @@ function draw() {
             textWidth = Math.max(textWidth, ctx.measureText(lines[i]).width);
           }
 
-          if (caption.align === "left") {
+          if (align === "left") {
             baseX = 0;
-          } else if (caption.align === "center") {
+          } else if (align === "center") {
             baseX = textWidth / 2;
           } else {
             baseX = textWidth;
@@ -329,9 +369,9 @@ function draw() {
 
           ctx.fillStyle = caption.backgroundColor;
           ctx.fillRect(
-            canvas.width * caption.positionX - coordLeft - baseX - margin,
-            (canvas.height - VIDEO_PADDING) * caption.positionY -
-              coordTop -
+            canvas.width * positionX - KP.coords.left - baseX - margin,
+            (canvas.height - KP.config.VIDEO_PADDING) * positionY -
+              KP.coords.top -
               (fontSize * lineHeight) / 2 -
               margin / 4,
             textWidth + margin * 2,
@@ -347,86 +387,20 @@ function draw() {
             addY += fontSize * lineHeight * i;
           }
 
-          const x = canvas.width * caption.positionX - coordLeft;
+          const x = canvas.width * positionX - KP.coords.left;
           const y =
-            (canvas.height - VIDEO_PADDING) * caption.positionY -
-            coordTop +
+            (canvas.height - KP.config.VIDEO_PADDING) * positionY -
+            KP.coords.top +
             addY;
 
-          if (caption.strokeWidth > 0) {
-            ctx.strokeStyle = caption.strokeColor || "black";
-            ctx.lineWidth = caption.strokeWidth;
+          if (strokeWidth > 0) {
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = strokeWidth;
             ctx.strokeText(line, x, y);
           }
 
-          ctx.fillStyle = caption.textColor || "white";
+          ctx.fillStyle = textColor;
           ctx.fillText(line, x, y);
-        }
-      }
-      // Legacy array format
-      else {
-        let fontSize;
-        let lineHeight = 1.3;
-        if (caption[3].endsWith("b")) {
-          fontSize = Number(caption[3].substring(0, caption[3].indexOf("b")));
-          fontSize *= canvas.width / 1124;
-          ctx.font =
-            "bold " +
-            fontSize +
-            'px "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif';
-        } else {
-          fontSize = Number(caption[3]);
-          fontSize *= canvas.width / 1124;
-          ctx.font =
-            fontSize + 'px "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif';
-        }
-        ctx.textAlign = caption[4];
-        let text = caption[2];
-        let lines = text.split("\n");
-
-        let difY = 380 * (canvas.width / 1124 - 1) * (0.5 - caption[6]);
-
-        if (caption.length > 7) {
-          let baseX = 0;
-          let margin = 10;
-          let textWidth = 0;
-          for (let i = 0; i < lines.length; i++) {
-            textWidth = Math.max(textWidth, ctx.measureText(lines[i]).width);
-          }
-          if (caption[4] == "left") {
-            baseX = 0;
-          } else if (caption[4] == "center") {
-            baseX = textWidth / 2;
-          } else {
-            baseX = textWidth;
-          }
-          ctx.fillStyle = caption[7];
-          ctx.fillRect(
-            canvas.width * caption[5] - coordLeft - baseX - margin,
-            canvas.height * caption[6] -
-              coordTop -
-              (fontSize * lineHeight) / 2 -
-              difY -
-              margin / 4,
-            textWidth + margin * 2,
-            fontSize * lineHeight * lines.length + margin
-          );
-        }
-
-        ctx.fillStyle = "white";
-        for (let i = 0; i < lines.length; i++) {
-          let line = lines[i];
-          let addY = fontSize / 2;
-
-          if (i > 0) {
-            addY += fontSize * lineHeight * i;
-          }
-
-          ctx.fillText(
-            line,
-            canvas.width * caption[5] - coordLeft,
-            canvas.height * caption[6] + addY - coordTop - difY
-          );
         }
       }
     }
@@ -435,15 +409,15 @@ function draw() {
 
   // Debug info
   if (debug) {
-    ctx.font = 'bold 20px "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif';
+    ctx.font = 'bold 20px "Meiryo", sans-serif';
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
     ctx.fillText("time: " + video.currentTime.toFixed("2"), 10, 20);
     ctx.fillText(
       "(" +
-        (mouseMoveX / canvas.width).toFixed(2) +
+        (KP.mouse.moveX / canvas.width).toFixed(2) +
         ", " +
-        (mouseMoveY / canvas.height).toFixed(2) +
+        (KP.mouse.moveY / canvas.height).toFixed(2) +
         ")",
       10,
       40
@@ -451,8 +425,8 @@ function draw() {
   }
   ctx.textAlign = "right";
 
-  if (finished) {
-    if (theaterMode) {
+  if (KP.playback.finished) {
+    if (KP.ui.theaterMode) {
       flipTheaterMode();
     }
 
@@ -485,7 +459,7 @@ function draw() {
       buttonX,
       buttonY + buttonHeight
     );
-    if (onReplay) {
+    if (KP.ui.onReplay) {
       buttonGradient.addColorStop(0, "rgba(70, 70, 70, 0.9)");
       buttonGradient.addColorStop(1, "rgba(50, 50, 50, 0.9)");
     } else {
@@ -500,12 +474,12 @@ function draw() {
 
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
-    ctx.strokeStyle = onReplay
+    ctx.strokeStyle = KP.ui.onReplay
       ? "rgba(255, 255, 255, 0.4)"
       : "rgba(255, 255, 255, 0.2)";
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.fillStyle = onReplay
+    ctx.fillStyle = KP.ui.onReplay
       ? "rgba(255, 255, 255, 0.9)"
       : "rgba(255, 255, 255, 0.7)";
     const iconSize = 20;
@@ -524,7 +498,7 @@ function draw() {
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = onReplay
+    ctx.fillStyle = KP.ui.onReplay
       ? "rgba(255, 255, 255, 0.9)"
       : "rgba(255, 255, 255, 0.7)";
     ctx.font = 'bold 26px "Arial"';
@@ -535,16 +509,19 @@ function draw() {
     return;
   }
 
-  if (playAnime) {
+  if (KP.animation.play) {
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(0.3 + (0.6 - alpha) / 2, 0.3 + (0.6 - alpha) / 2);
+    ctx.scale(
+      0.3 + (0.6 - KP.animation.alpha) / 2,
+      0.3 + (0.6 - KP.animation.alpha) / 2
+    );
 
-    ctx.fillStyle = "rgba(0, 0, 0, " + alpha + ")";
+    ctx.fillStyle = "rgba(0, 0, 0, " + KP.animation.alpha + ")";
     ctx.beginPath();
     ctx.arc(0, 0, 100, 0, 2 * Math.PI);
     ctx.fill();
-    ctx.fillStyle = "rgba(255, 255, 255, " + alpha + ")";
+    ctx.fillStyle = "rgba(255, 255, 255, " + KP.animation.alpha + ")";
     ctx.beginPath();
     ctx.moveTo(-30, -45);
     ctx.lineTo(50, 0);
@@ -552,22 +529,25 @@ function draw() {
     ctx.closePath();
     ctx.fill();
 
-    alpha -= 0.02;
-    if (alpha < 0) {
-      playAnime = false;
+    KP.animation.alpha -= 0.02;
+    if (KP.animation.alpha < 0) {
+      KP.animation.play = false;
     }
     ctx.restore();
-  } else if (pauseAnime) {
+  } else if (KP.animation.pause) {
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(0.3 + (0.6 - alpha) / 2, 0.3 + (0.6 - alpha) / 2);
+    ctx.scale(
+      0.3 + (0.6 - KP.animation.alpha) / 2,
+      0.3 + (0.6 - KP.animation.alpha) / 2
+    );
 
-    ctx.fillStyle = "rgba(0, 0, 0, " + alpha + ")";
+    ctx.fillStyle = "rgba(0, 0, 0, " + KP.animation.alpha + ")";
     ctx.beginPath();
     ctx.arc(0, 0, 100, 0, 2 * Math.PI);
     ctx.fill();
     ctx.lineWidth = 22;
-    ctx.strokeStyle = "rgba(255, 255, 255, " + alpha + ")";
+    ctx.strokeStyle = "rgba(255, 255, 255, " + KP.animation.alpha + ")";
     ctx.beginPath();
     ctx.moveTo(-23, -45);
     ctx.lineTo(-23, 45);
@@ -575,27 +555,30 @@ function draw() {
     ctx.lineTo(23, 45);
     ctx.stroke();
 
-    alpha -= 0.02;
-    if (alpha < 0) {
-      pauseAnime = false;
+    KP.animation.alpha -= 0.02;
+    if (KP.animation.alpha < 0) {
+      KP.animation.pause = false;
     }
     ctx.restore();
-  } else if (stepBackAnime) {
+  } else if (KP.animation.stepBack) {
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(0.3 + (0.6 - alpha) / 2, 0.3 + (0.6 - alpha) / 2);
+    ctx.scale(
+      0.3 + (0.6 - KP.animation.alpha) / 2,
+      0.3 + (0.6 - KP.animation.alpha) / 2
+    );
 
-    ctx.fillStyle = "rgba(0, 0, 0, " + alpha + ")";
+    ctx.fillStyle = "rgba(0, 0, 0, " + KP.animation.alpha + ")";
     ctx.beginPath();
     ctx.arc(0, 0, 100, 0, 2 * Math.PI);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(255, 255, 255, " + alpha + ")";
+    ctx.strokeStyle = "rgba(255, 255, 255, " + KP.animation.alpha + ")";
     ctx.lineWidth = 12;
     ctx.beginPath();
     ctx.arc(0, 0, 55, -Math.PI / 2 - 0.61, Math.PI / 2 + 1.2);
     ctx.stroke();
-    ctx.fillStyle = "rgba(255, 255, 255, " + alpha + ")";
+    ctx.fillStyle = "rgba(255, 255, 255, " + KP.animation.alpha + ")";
     ctx.beginPath();
     ctx.moveTo(-45, -60);
     ctx.lineTo(-18, -31);
@@ -605,27 +588,30 @@ function draw() {
     ctx.font = '48px "Arial"';
     ctx.fillText("10", 25, 20);
 
-    alpha -= 0.02;
-    if (alpha < 0) {
-      stepBackAnime = false;
+    KP.animation.alpha -= 0.02;
+    if (KP.animation.alpha < 0) {
+      KP.animation.stepBack = false;
     }
     ctx.restore();
-  } else if (stepForwardAnime) {
+  } else if (KP.animation.stepForward) {
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(0.3 + (0.6 - alpha) / 2, 0.3 + (0.6 - alpha) / 2);
+    ctx.scale(
+      0.3 + (0.6 - KP.animation.alpha) / 2,
+      0.3 + (0.6 - KP.animation.alpha) / 2
+    );
 
-    ctx.fillStyle = "rgba(0, 0, 0, " + alpha + ")";
+    ctx.fillStyle = "rgba(0, 0, 0, " + KP.animation.alpha + ")";
     ctx.beginPath();
     ctx.arc(0, 0, 100, 0, 2 * Math.PI);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(255, 255, 255, " + alpha + ")";
+    ctx.strokeStyle = "rgba(255, 255, 255, " + KP.animation.alpha + ")";
     ctx.lineWidth = 12;
     ctx.beginPath();
     ctx.arc(0, 0, 55, -Math.PI / 2 + 0.61, Math.PI / 2 - 1.2, true);
     ctx.stroke();
-    ctx.fillStyle = "rgba(255, 255, 255, " + alpha + ")";
+    ctx.fillStyle = "rgba(255, 255, 255, " + KP.animation.alpha + ")";
     ctx.beginPath();
     ctx.moveTo(45, -60);
     ctx.lineTo(18, -31);
@@ -635,29 +621,29 @@ function draw() {
     ctx.font = '48px "Arial"';
     ctx.fillText("10", 25, 20);
 
-    alpha -= 0.02;
-    if (alpha < 0) {
-      stepForwardAnime = false;
+    KP.animation.alpha -= 0.02;
+    if (KP.animation.alpha < 0) {
+      KP.animation.stepForward = false;
     }
     ctx.restore();
   }
 
-  if (onCanvas && !onMediaControl && playing) {
-    stopCount--;
-    if (stopCount === 0) {
-      fading = true;
-      fadeAlpha = 50;
+  if (KP.ui.onCanvas && !KP.ui.onMediaControl && KP.playback.playing) {
+    KP.animation.stopCount--;
+    if (KP.animation.stopCount === 0) {
+      KP.ui.fading = true;
+      KP.animation.fadeAlpha = 50;
     }
   }
 
-  if (onCanvas || !playing || fading) {
-    if (fading) {
-      if (fadeAlpha === 0) {
+  if (KP.ui.onCanvas || !KP.playback.playing || KP.ui.fading) {
+    if (KP.ui.fading) {
+      if (KP.animation.fadeAlpha === 0) {
         ctx.globalAlpha = 0;
-        if (onCanvas) document.body.style.cursor = "none";
+        if (KP.ui.onCanvas) document.body.style.cursor = "none";
       } else {
-        fadeAlpha--;
-        ctx.globalAlpha = Math.min(10, fadeAlpha) / 10;
+        KP.animation.fadeAlpha--;
+        ctx.globalAlpha = Math.min(10, KP.animation.fadeAlpha) / 10;
       }
     }
 
@@ -665,7 +651,7 @@ function draw() {
 
     let back = ctx.createLinearGradient(
       0,
-      canvas.height - 2 * SEEKBAR_HEIGHT,
+      canvas.height - 2 * KP.config.SEEKBAR_HEIGHT,
       0,
       canvas.height
     );
@@ -676,36 +662,45 @@ function draw() {
     ctx.fillStyle = back;
     ctx.fillRect(
       0,
-      canvas.height - 2 * SEEKBAR_HEIGHT,
+      canvas.height - 2 * KP.config.SEEKBAR_HEIGHT,
       canvas.width,
-      2 * SEEKBAR_HEIGHT
+      2 * KP.config.SEEKBAR_HEIGHT
     );
 
-    let seekBarWidth = canvas.width - 2 * SEEKBAR_MARGIN;
+    let seekBarWidth = canvas.width - 2 * KP.config.SEEKBAR_MARGIN;
 
-    if (onSeekBar || dragSeekBar) {
+    if (KP.ui.onSeekBar || KP.ui.dragSeekBar) {
       ctx.lineWidth = 7;
     } else {
       ctx.lineWidth = 6;
     }
     ctx.strokeStyle = "rgba(180, 180, 180, 0.3)";
     ctx.beginPath();
-    ctx.moveTo(SEEKBAR_MARGIN - 0.5, canvas.height - SEEKBAR_HEIGHT);
+    ctx.moveTo(
+      KP.config.SEEKBAR_MARGIN - 0.5,
+      canvas.height - KP.config.SEEKBAR_HEIGHT
+    );
     ctx.lineTo(
-      canvas.width - SEEKBAR_MARGIN + 0.5,
-      canvas.height - SEEKBAR_HEIGHT
+      canvas.width - KP.config.SEEKBAR_MARGIN + 0.5,
+      canvas.height - KP.config.SEEKBAR_HEIGHT
     );
     ctx.stroke();
 
-    if (onSeekBar || dragSeekBar) {
+    if (KP.ui.onSeekBar || KP.ui.dragSeekBar) {
       ctx.lineWidth = 5;
     } else {
       ctx.lineWidth = 4;
     }
     ctx.strokeStyle = "gray";
     ctx.beginPath();
-    ctx.moveTo(SEEKBAR_MARGIN, canvas.height - SEEKBAR_HEIGHT);
-    ctx.lineTo(canvas.width - SEEKBAR_MARGIN, canvas.height - SEEKBAR_HEIGHT);
+    ctx.moveTo(
+      KP.config.SEEKBAR_MARGIN,
+      canvas.height - KP.config.SEEKBAR_HEIGHT
+    );
+    ctx.lineTo(
+      canvas.width - KP.config.SEEKBAR_MARGIN,
+      canvas.height - KP.config.SEEKBAR_HEIGHT
+    );
     ctx.stroke();
 
     if (video.buffered.length > 0) {
@@ -715,24 +710,25 @@ function draw() {
         if (video.buffered.end(b) < video.currentTime) continue;
         ctx.beginPath();
         ctx.moveTo(
-          SEEKBAR_MARGIN +
+          KP.config.SEEKBAR_MARGIN +
             (seekBarWidth * video.currentTime) /
-              (video.duration - DURATION_DIF),
-          canvas.height - SEEKBAR_HEIGHT
+              (video.duration - KP.config.DURATION_DIF),
+          canvas.height - KP.config.SEEKBAR_HEIGHT
         );
         if (video.buffered.end(b) === video.duration) {
           ctx.lineTo(
-            SEEKBAR_MARGIN +
-              (seekBarWidth * (video.buffered.end(b) - DURATION_DIF)) /
-                (video.duration - DURATION_DIF),
-            canvas.height - SEEKBAR_HEIGHT
+            KP.config.SEEKBAR_MARGIN +
+              (seekBarWidth *
+                (video.buffered.end(b) - KP.config.DURATION_DIF)) /
+                (video.duration - KP.config.DURATION_DIF),
+            canvas.height - KP.config.SEEKBAR_HEIGHT
           );
         } else {
           ctx.lineTo(
-            SEEKBAR_MARGIN +
+            KP.config.SEEKBAR_MARGIN +
               (seekBarWidth * video.buffered.end(b)) /
-                (video.duration - DURATION_DIF),
-            canvas.height - SEEKBAR_HEIGHT
+                (video.duration - KP.config.DURATION_DIF),
+            canvas.height - KP.config.SEEKBAR_HEIGHT
           );
         }
         ctx.stroke();
@@ -741,41 +737,46 @@ function draw() {
 
     ctx.strokeStyle = "red";
     ctx.beginPath();
-    ctx.moveTo(SEEKBAR_MARGIN, canvas.height - SEEKBAR_HEIGHT);
+    ctx.moveTo(
+      KP.config.SEEKBAR_MARGIN,
+      canvas.height - KP.config.SEEKBAR_HEIGHT
+    );
     ctx.lineTo(
-      SEEKBAR_MARGIN +
-        (seekBarWidth * video.currentTime) / (video.duration - DURATION_DIF),
-      canvas.height - SEEKBAR_HEIGHT
+      KP.config.SEEKBAR_MARGIN +
+        (seekBarWidth * video.currentTime) /
+          (video.duration - KP.config.DURATION_DIF),
+      canvas.height - KP.config.SEEKBAR_HEIGHT
     );
     ctx.stroke();
 
-    if ((onSeekBar || dragSeekBar) && !dragVolumeControl) {
-      if (seekBallRad < 6) {
-        seekBallRad++;
+    if ((KP.ui.onSeekBar || KP.ui.dragSeekBar) && !KP.ui.dragVolumeControl) {
+      if (KP.animation.seekBallRad < 6) {
+        KP.animation.seekBallRad++;
       }
 
       ctx.fillStyle = "red";
       ctx.beginPath();
       ctx.arc(
-        SEEKBAR_MARGIN +
-          (seekBarWidth * video.currentTime) / (video.duration - DURATION_DIF),
-        canvas.height - SEEKBAR_HEIGHT,
-        seekBallRad,
+        KP.config.SEEKBAR_MARGIN +
+          (seekBarWidth * video.currentTime) /
+            (video.duration - KP.config.DURATION_DIF),
+        canvas.height - KP.config.SEEKBAR_HEIGHT,
+        KP.animation.seekBallRad,
         0,
         2 * Math.PI
       );
       ctx.fill();
     } else {
-      if (seekBallRad > 0) {
-        seekBallRad--;
+      if (KP.animation.seekBallRad > 0) {
+        KP.animation.seekBallRad--;
         ctx.fillStyle = "red";
         ctx.beginPath();
         ctx.arc(
-          SEEKBAR_MARGIN +
+          KP.config.SEEKBAR_MARGIN +
             (seekBarWidth * video.currentTime) /
-              (video.duration - DURATION_DIF),
-          canvas.height - SEEKBAR_HEIGHT,
-          seekBallRad,
+              (video.duration - KP.config.DURATION_DIF),
+          canvas.height - KP.config.SEEKBAR_HEIGHT,
+          KP.animation.seekBallRad,
           0,
           2 * Math.PI
         );
@@ -784,36 +785,40 @@ function draw() {
     }
 
     if (
-      video.currentTime >= video.duration - DURATION_DIF &&
+      video.currentTime >= video.duration - KP.config.DURATION_DIF &&
       !video.onwaiting
     ) {
       video.currentTime = video.duration;
-      if (playing) flipPlayPauseVideo();
-      finished = true;
+      if (KP.playback.playing) flipPlayPauseVideo();
+      KP.playback.finished = true;
     }
 
-    if ((onSeekBar || dragSeekBar) && !dragVolumeControl) {
+    if ((KP.ui.onSeekBar || KP.ui.dragSeekBar) && !KP.ui.dragVolumeControl) {
       let seekPos =
-        (mouseMoveX - SEEKBAR_MARGIN) / (canvas.width - 2 * SEEKBAR_MARGIN);
+        (KP.mouse.moveX - KP.config.SEEKBAR_MARGIN) /
+        (canvas.width - 2 * KP.config.SEEKBAR_MARGIN);
       let seekPosDifX = 0;
       seekPos = seekBarWidth * Math.max(0, Math.min(1, seekPos));
-      if (seekPos - 7 < SEEKBAR_MARGIN) {
-        seekPosDifX = SEEKBAR_MARGIN - seekPos + 7;
-      } else if (seekPos + 27 > canvas.width - 2 * SEEKBAR_MARGIN) {
-        seekPosDifX = canvas.width - 2 * SEEKBAR_MARGIN - seekPos - 27;
+      if (seekPos - 7 < KP.config.SEEKBAR_MARGIN) {
+        seekPosDifX = KP.config.SEEKBAR_MARGIN - seekPos + 7;
+      } else if (seekPos + 27 > canvas.width - 2 * KP.config.SEEKBAR_MARGIN) {
+        seekPosDifX =
+          canvas.width - 2 * KP.config.SEEKBAR_MARGIN - seekPos - 27;
       }
       ctx.fillStyle = grayBsck;
       ctx.fillRect(
-        seekPosDifX + seekPos - 27 + SEEKBAR_MARGIN,
-        canvas.height - SEEKBAR_HEIGHT - 37,
+        seekPosDifX + seekPos - 27 + KP.config.SEEKBAR_MARGIN,
+        canvas.height - KP.config.SEEKBAR_HEIGHT - 37,
         54,
         27
       );
 
       let timeBuf =
-        (mouseMoveX - SEEKBAR_MARGIN) / (canvas.width - 2 * SEEKBAR_MARGIN);
+        (KP.mouse.moveX - KP.config.SEEKBAR_MARGIN) /
+        (canvas.width - 2 * KP.config.SEEKBAR_MARGIN);
       timeBuf =
-        (video.duration - DURATION_DIF) * Math.max(0, Math.min(1, timeBuf));
+        (video.duration - KP.config.DURATION_DIF) *
+        Math.max(0, Math.min(1, timeBuf));
       let curMBuf = Math.floor(timeBuf / 60);
       let curSBuf = Math.floor(timeBuf % 60);
       let txtTimeBuf = "";
@@ -824,18 +829,18 @@ function draw() {
       ctx.textAlign = "center";
       ctx.fillText(
         txtTimeBuf,
-        seekPosDifX + seekPos + SEEKBAR_MARGIN,
-        canvas.height - SEEKBAR_HEIGHT - 18
+        seekPosDifX + seekPos + KP.config.SEEKBAR_MARGIN,
+        canvas.height - KP.config.SEEKBAR_HEIGHT - 18
       );
     }
 
-    if (onPlayPause && !dragSeekBar && !dragVolumeControl) {
+    if (KP.ui.onPlayPause && !KP.ui.dragSeekBar && !KP.ui.dragVolumeControl) {
       ctx.strokeStyle = "white";
-      if (!playing) {
+      if (!KP.playback.playing) {
         ctx.fillStyle = grayBsck;
         ctx.fillRect(
-          SEEKBAR_MARGIN,
-          canvas.height - SEEKBAR_HEIGHT - 37,
+          KP.config.SEEKBAR_MARGIN,
+          canvas.height - KP.config.SEEKBAR_HEIGHT - 37,
           92,
           27
         );
@@ -844,14 +849,14 @@ function draw() {
         ctx.textAlign = "left";
         ctx.fillText(
           "Play [space]",
-          SEEKBAR_MARGIN + 5,
-          canvas.height - SEEKBAR_HEIGHT - 18
+          KP.config.SEEKBAR_MARGIN + 5,
+          canvas.height - KP.config.SEEKBAR_HEIGHT - 18
         );
       } else {
         ctx.fillStyle = grayBsck;
         ctx.fillRect(
-          SEEKBAR_MARGIN,
-          canvas.height - SEEKBAR_HEIGHT - 37,
+          KP.config.SEEKBAR_MARGIN,
+          canvas.height - KP.config.SEEKBAR_HEIGHT - 37,
           94,
           27
         );
@@ -861,38 +866,38 @@ function draw() {
         ctx.textAlign = "left";
         ctx.fillText(
           "Stop [space]",
-          SEEKBAR_MARGIN + 5,
-          canvas.height - SEEKBAR_HEIGHT - 18
+          KP.config.SEEKBAR_MARGIN + 5,
+          canvas.height - KP.config.SEEKBAR_HEIGHT - 18
         );
       }
     } else {
       ctx.fillStyle = "lightgray";
       ctx.strokeStyle = "lightgray";
     }
-    if (!playing) {
+    if (!KP.playback.playing) {
       ctx.beginPath();
-      ctx.moveTo(PLAY_PAUSE_MARGIN, canvas.height - 35);
-      ctx.lineTo(PLAY_PAUSE_MARGIN + 20, canvas.height - 25);
-      ctx.lineTo(PLAY_PAUSE_MARGIN, canvas.height - 15);
+      ctx.moveTo(KP.config.PLAY_PAUSE_MARGIN, canvas.height - 35);
+      ctx.lineTo(KP.config.PLAY_PAUSE_MARGIN + 20, canvas.height - 25);
+      ctx.lineTo(KP.config.PLAY_PAUSE_MARGIN, canvas.height - 15);
       ctx.closePath();
       ctx.fill();
     } else {
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(PLAY_PAUSE_MARGIN + 3, canvas.height - 35);
-      ctx.lineTo(PLAY_PAUSE_MARGIN + 3, canvas.height - 15);
-      ctx.moveTo(PLAY_PAUSE_MARGIN + 13, canvas.height - 35);
-      ctx.lineTo(PLAY_PAUSE_MARGIN + 13, canvas.height - 15);
+      ctx.moveTo(KP.config.PLAY_PAUSE_MARGIN + 3, canvas.height - 35);
+      ctx.lineTo(KP.config.PLAY_PAUSE_MARGIN + 3, canvas.height - 15);
+      ctx.moveTo(KP.config.PLAY_PAUSE_MARGIN + 13, canvas.height - 35);
+      ctx.lineTo(KP.config.PLAY_PAUSE_MARGIN + 13, canvas.height - 15);
       ctx.stroke();
     }
 
-    if (!isNarrowCanvas) {
-      if (onStepBack && !dragSeekBar && !dragVolumeControl) {
+    if (!KP.layout.isNarrowCanvas) {
+      if (KP.ui.onStepBack && !KP.ui.dragSeekBar && !KP.ui.dragVolumeControl) {
         ctx.strokeStyle = "white";
         ctx.fillStyle = grayBsck;
         ctx.fillRect(
-          STEP_BACK_MARGIN - 45,
-          canvas.height - SEEKBAR_HEIGHT - 37,
+          KP.config.STEP_BACK_MARGIN - 45,
+          canvas.height - KP.config.SEEKBAR_HEIGHT - 37,
           100,
           27
         );
@@ -902,8 +907,8 @@ function draw() {
         ctx.textAlign = "left";
         ctx.fillText(
           "10s back [←]",
-          STEP_BACK_MARGIN - 40,
-          canvas.height - SEEKBAR_HEIGHT - 18
+          KP.config.STEP_BACK_MARGIN - 40,
+          canvas.height - KP.config.SEEKBAR_HEIGHT - 18
         );
       } else {
         ctx.fillStyle = "lightgray";
@@ -912,7 +917,7 @@ function draw() {
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(
-        STEP_BACK_MARGIN,
+        KP.config.STEP_BACK_MARGIN,
         canvas.height - 25,
         13,
         -Math.PI / 2 - 0.8,
@@ -920,23 +925,27 @@ function draw() {
       );
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(STEP_BACK_MARGIN - 11, canvas.height - 38);
-      ctx.lineTo(STEP_BACK_MARGIN - 3, canvas.height - 31);
-      ctx.lineTo(STEP_BACK_MARGIN - 12, canvas.height - 28);
+      ctx.moveTo(KP.config.STEP_BACK_MARGIN - 11, canvas.height - 38);
+      ctx.lineTo(KP.config.STEP_BACK_MARGIN - 3, canvas.height - 31);
+      ctx.lineTo(KP.config.STEP_BACK_MARGIN - 12, canvas.height - 28);
       ctx.closePath();
       ctx.fill();
       ctx.font = '11px "Arial"';
       ctx.textAlign = "right";
-      ctx.fillText("10", STEP_BACK_MARGIN + 6, canvas.height - 20);
+      ctx.fillText("10", KP.config.STEP_BACK_MARGIN + 6, canvas.height - 20);
     }
 
-    if (!isNarrowCanvas) {
-      if (onStepForward && !dragSeekBar && !dragVolumeControl) {
+    if (!KP.layout.isNarrowCanvas) {
+      if (
+        KP.ui.onStepForward &&
+        !KP.ui.dragSeekBar &&
+        !KP.ui.dragVolumeControl
+      ) {
         ctx.strokeStyle = "white";
         ctx.fillStyle = grayBsck;
         ctx.fillRect(
-          STEP_FORWARD_MARGIN - 45,
-          canvas.height - SEEKBAR_HEIGHT - 37,
+          KP.config.STEP_FORWARD_MARGIN - 45,
+          canvas.height - KP.config.SEEKBAR_HEIGHT - 37,
           120,
           27
         );
@@ -946,8 +955,8 @@ function draw() {
         ctx.textAlign = "left";
         ctx.fillText(
           "10s forward [→]",
-          STEP_FORWARD_MARGIN - 40,
-          canvas.height - SEEKBAR_HEIGHT - 18
+          KP.config.STEP_FORWARD_MARGIN - 40,
+          canvas.height - KP.config.SEEKBAR_HEIGHT - 18
         );
       } else {
         ctx.fillStyle = "lightgray";
@@ -956,7 +965,7 @@ function draw() {
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(
-        STEP_FORWARD_MARGIN,
+        KP.config.STEP_FORWARD_MARGIN,
         canvas.height - 25,
         13,
         -Math.PI / 2 + 0.8,
@@ -965,22 +974,22 @@ function draw() {
       );
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(STEP_FORWARD_MARGIN + 11, canvas.height - 38);
-      ctx.lineTo(STEP_FORWARD_MARGIN + 3, canvas.height - 31);
-      ctx.lineTo(STEP_FORWARD_MARGIN + 12, canvas.height - 28);
+      ctx.moveTo(KP.config.STEP_FORWARD_MARGIN + 11, canvas.height - 38);
+      ctx.lineTo(KP.config.STEP_FORWARD_MARGIN + 3, canvas.height - 31);
+      ctx.lineTo(KP.config.STEP_FORWARD_MARGIN + 12, canvas.height - 28);
       ctx.closePath();
       ctx.fill();
       ctx.font = '11px "Arial"';
       ctx.textAlign = "right";
-      ctx.fillText("10", STEP_FORWARD_MARGIN + 5, canvas.height - 20);
+      ctx.fillText("10", KP.config.STEP_FORWARD_MARGIN + 5, canvas.height - 20);
     }
 
-    if (onVolume && !dragSeekBar && !dragVolumeControl) {
+    if (KP.ui.onVolume && !KP.ui.dragSeekBar && !KP.ui.dragVolumeControl) {
       ctx.strokeStyle = "white";
       ctx.fillStyle = grayBsck;
       ctx.fillRect(
-        VOLUME_MARGIN - 18,
-        canvas.height - SEEKBAR_HEIGHT - 37,
+        KP.layout.VOLUME_MARGIN - 18,
+        canvas.height - KP.config.SEEKBAR_HEIGHT - 37,
         70,
         27
       );
@@ -990,20 +999,20 @@ function draw() {
       ctx.textAlign = "left";
       ctx.fillText(
         "Mute [m]",
-        VOLUME_MARGIN - 13,
-        canvas.height - SEEKBAR_HEIGHT - 18
+        KP.layout.VOLUME_MARGIN - 13,
+        canvas.height - KP.config.SEEKBAR_HEIGHT - 18
       );
     } else {
       ctx.fillStyle = "lightgray";
       ctx.strokeStyle = "lightgray";
     }
     ctx.beginPath();
-    ctx.moveTo(VOLUME_MARGIN, canvas.height - 30);
-    ctx.lineTo(VOLUME_MARGIN + 6, canvas.height - 30);
-    ctx.lineTo(VOLUME_MARGIN + 16, canvas.height - 36);
-    ctx.lineTo(VOLUME_MARGIN + 16, canvas.height - 14);
-    ctx.lineTo(VOLUME_MARGIN + 6, canvas.height - 20);
-    ctx.lineTo(VOLUME_MARGIN, canvas.height - 20);
+    ctx.moveTo(KP.layout.VOLUME_MARGIN, canvas.height - 30);
+    ctx.lineTo(KP.layout.VOLUME_MARGIN + 6, canvas.height - 30);
+    ctx.lineTo(KP.layout.VOLUME_MARGIN + 16, canvas.height - 36);
+    ctx.lineTo(KP.layout.VOLUME_MARGIN + 16, canvas.height - 14);
+    ctx.lineTo(KP.layout.VOLUME_MARGIN + 6, canvas.height - 20);
+    ctx.lineTo(KP.layout.VOLUME_MARGIN, canvas.height - 20);
     ctx.closePath();
     ctx.fill();
 
@@ -1014,7 +1023,7 @@ function draw() {
       ctx.strokeStyle = "lightgray";
       ctx.beginPath();
       ctx.arc(
-        VOLUME_MARGIN + 18,
+        KP.layout.VOLUME_MARGIN + 18,
         canvas.height - 25,
         4,
         -Math.PI / 2 + 0.3,
@@ -1028,7 +1037,7 @@ function draw() {
       }
       ctx.beginPath();
       ctx.arc(
-        VOLUME_MARGIN + 18,
+        KP.layout.VOLUME_MARGIN + 18,
         canvas.height - 25,
         8,
         -Math.PI / 2 + 0.5,
@@ -1042,7 +1051,7 @@ function draw() {
       }
       ctx.beginPath();
       ctx.arc(
-        VOLUME_MARGIN + 18,
+        KP.layout.VOLUME_MARGIN + 18,
         canvas.height - 25,
         12,
         -Math.PI / 2 + 0.6,
@@ -1052,28 +1061,31 @@ function draw() {
     } else {
       ctx.strokeStyle = "rgb(180, 180, 180)";
       ctx.beginPath();
-      ctx.moveTo(VOLUME_MARGIN + 20, canvas.height - 30);
-      ctx.lineTo(VOLUME_MARGIN + 30, canvas.height - 20);
-      ctx.moveTo(VOLUME_MARGIN + 20, canvas.height - 20);
-      ctx.lineTo(VOLUME_MARGIN + 30, canvas.height - 30);
+      ctx.moveTo(KP.layout.VOLUME_MARGIN + 20, canvas.height - 30);
+      ctx.lineTo(KP.layout.VOLUME_MARGIN + 30, canvas.height - 20);
+      ctx.moveTo(KP.layout.VOLUME_MARGIN + 20, canvas.height - 20);
+      ctx.lineTo(KP.layout.VOLUME_MARGIN + 30, canvas.height - 30);
       ctx.stroke();
     }
 
     ctx.lineWidth = 3;
     ctx.strokeStyle = "gray";
     ctx.beginPath();
-    ctx.moveTo(VOLUME_MARGIN + 42, canvas.height - 25);
-    ctx.lineTo(VOLUME_MARGIN + 112, canvas.height - 25);
+    ctx.moveTo(KP.layout.VOLUME_MARGIN + 42, canvas.height - 25);
+    ctx.lineTo(KP.layout.VOLUME_MARGIN + 112, canvas.height - 25);
     ctx.stroke();
     ctx.strokeStyle = "white";
     ctx.beginPath();
-    ctx.moveTo(VOLUME_MARGIN + 42, canvas.height - 25);
-    ctx.lineTo(VOLUME_MARGIN + 42 + volumeBuf * 70, canvas.height - 25);
+    ctx.moveTo(KP.layout.VOLUME_MARGIN + 42, canvas.height - 25);
+    ctx.lineTo(
+      KP.layout.VOLUME_MARGIN + 42 + volumeBuf * 70,
+      canvas.height - 25
+    );
     ctx.fillStyle = "white";
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(
-      VOLUME_MARGIN + 42 + volumeBuf * 70,
+      KP.layout.VOLUME_MARGIN + 42 + volumeBuf * 70,
       canvas.height - 25,
       5,
       0,
@@ -1084,20 +1096,22 @@ function draw() {
     const speedControlY = canvas.height - 38;
 
     if (
-      (onPlayBackTrigger && !dragSeekBar && !dragVolumeControl) ||
-      pressPlayBackTrigger
+      (KP.ui.onPlayBackTrigger &&
+        !KP.ui.dragSeekBar &&
+        !KP.ui.dragVolumeControl) ||
+      KP.ui.pressPlayBackTrigger
     ) {
       ctx.fillStyle = "rgb(90, 90, 90)";
     } else {
       ctx.fillStyle = "rgb(50, 50, 50)";
     }
-    ctx.fillRect(theaterMargin, speedControlY, 40, 25);
+    ctx.fillRect(KP.layout.theaterMargin, speedControlY, 40, 25);
 
     ctx.font = '13px "Arial"';
     ctx.textAlign = "left";
-    if (pressPlayBackTrigger) {
+    if (KP.ui.pressPlayBackTrigger) {
       for (let y = 1; y < 8; y++) {
-        if (onPlayBacks[7 - y]) {
+        if (KP.ui.onPlayBacks[7 - y]) {
           ctx.fillStyle = "rgb(110, 110, 110)";
         } else if (
           video.playbackRate.toFixed(1) === (0.6 + y * 0.2).toFixed(1)
@@ -1107,10 +1121,10 @@ function draw() {
           ctx.fillStyle = "rgb(50, 50, 50)";
         }
         const itemY = canvas.height - 38 - y * 25;
-        ctx.fillRect(theaterMargin, itemY, 40, 25);
+        ctx.fillRect(KP.layout.theaterMargin, itemY, 40, 25);
 
         if (
-          onPlayBacks[7 - y] ||
+          KP.ui.onPlayBacks[7 - y] ||
           video.playbackRate.toFixed(1) === (0.6 + y * 0.2).toFixed(1)
         ) {
           ctx.fillStyle = "white";
@@ -1120,7 +1134,7 @@ function draw() {
         const textY = canvas.height - 20 - y * 25;
         ctx.fillText(
           "x" + (0.6 + y * 0.2).toFixed(1),
-          theaterMargin + 8,
+          KP.layout.theaterMargin + 8,
           textY
         );
       }
@@ -1128,34 +1142,34 @@ function draw() {
 
     ctx.lineWidth = 1;
     ctx.strokeStyle = "rgb(120, 120, 120)";
-    ctx.strokeRect(theaterMargin, speedControlY, 40, 25);
+    ctx.strokeRect(KP.layout.theaterMargin, speedControlY, 40, 25);
 
-    if (!isNarrowCanvas) {
+    if (!KP.layout.isNarrowCanvas) {
       ctx.fillStyle = "white";
       ctx.font = '13px "Arial"';
       ctx.textAlign = "left";
-      ctx.fillText("Speed：", theaterMargin - 55, canvas.height - 20);
+      ctx.fillText("Speed：", KP.layout.theaterMargin - 55, canvas.height - 20);
     }
 
     ctx.fillStyle = "white";
     ctx.fillText(
       "x" + video.playbackRate.toFixed(1),
-      theaterMargin + 8,
+      KP.layout.theaterMargin + 8,
       canvas.height - 20
     );
 
     const fullscreenButtonY = canvas.height - 30;
-    const fullscreenTooltipY = canvas.height - SEEKBAR_HEIGHT - 37;
+    const fullscreenTooltipY = canvas.height - KP.config.SEEKBAR_HEIGHT - 37;
 
-    if (onFullscreen && !dragSeekBar && !dragVolumeControl) {
+    if (KP.ui.onFullscreen && !KP.ui.dragSeekBar && !KP.ui.dragVolumeControl) {
       ctx.fillStyle = grayBsck;
-      ctx.fillRect(fullscreenMargin - 15, fullscreenTooltipY, 57, 27);
+      ctx.fillRect(KP.layout.fullscreenMargin - 15, fullscreenTooltipY, 57, 27);
       ctx.fillStyle = "white";
       ctx.font = '15px "Arial"';
       ctx.textAlign = "left";
       ctx.fillText(
-        isFullscreenMode ? "Exit [F]" : "Full [F]",
-        fullscreenMargin - 10,
+        KP.ui.isFullscreenMode ? "Exit [F]" : "Full [F]",
+        KP.layout.fullscreenMargin - 10,
         fullscreenTooltipY + 18
       );
     } else {
@@ -1164,41 +1178,41 @@ function draw() {
     }
 
     ctx.lineWidth = 3;
-    if (!isFullscreenMode) {
+    if (!KP.ui.isFullscreenMode) {
       ctx.beginPath();
-      ctx.moveTo(fullscreenMargin, fullscreenButtonY);
-      ctx.lineTo(fullscreenMargin, fullscreenButtonY - 6);
-      ctx.lineTo(fullscreenMargin + 10, fullscreenButtonY - 6);
+      ctx.moveTo(KP.layout.fullscreenMargin, fullscreenButtonY);
+      ctx.lineTo(KP.layout.fullscreenMargin, fullscreenButtonY - 6);
+      ctx.lineTo(KP.layout.fullscreenMargin + 10, fullscreenButtonY - 6);
 
-      ctx.moveTo(fullscreenMargin + 20, fullscreenButtonY - 6);
-      ctx.lineTo(fullscreenMargin + 30, fullscreenButtonY - 6);
-      ctx.lineTo(fullscreenMargin + 30, fullscreenButtonY);
+      ctx.moveTo(KP.layout.fullscreenMargin + 20, fullscreenButtonY - 6);
+      ctx.lineTo(KP.layout.fullscreenMargin + 30, fullscreenButtonY - 6);
+      ctx.lineTo(KP.layout.fullscreenMargin + 30, fullscreenButtonY);
 
-      ctx.moveTo(fullscreenMargin + 30, fullscreenButtonY + 9);
-      ctx.lineTo(fullscreenMargin + 30, fullscreenButtonY + 15);
-      ctx.lineTo(fullscreenMargin + 20, fullscreenButtonY + 15);
+      ctx.moveTo(KP.layout.fullscreenMargin + 30, fullscreenButtonY + 9);
+      ctx.lineTo(KP.layout.fullscreenMargin + 30, fullscreenButtonY + 15);
+      ctx.lineTo(KP.layout.fullscreenMargin + 20, fullscreenButtonY + 15);
 
-      ctx.moveTo(fullscreenMargin + 10, fullscreenButtonY + 15);
-      ctx.lineTo(fullscreenMargin, fullscreenButtonY + 15);
-      ctx.lineTo(fullscreenMargin, fullscreenButtonY + 9);
+      ctx.moveTo(KP.layout.fullscreenMargin + 10, fullscreenButtonY + 15);
+      ctx.lineTo(KP.layout.fullscreenMargin, fullscreenButtonY + 15);
+      ctx.lineTo(KP.layout.fullscreenMargin, fullscreenButtonY + 9);
       ctx.stroke();
     } else {
       ctx.beginPath();
-      ctx.moveTo(fullscreenMargin, fullscreenButtonY);
-      ctx.lineTo(fullscreenMargin + 8, fullscreenButtonY);
-      ctx.lineTo(fullscreenMargin + 8, fullscreenButtonY - 5);
+      ctx.moveTo(KP.layout.fullscreenMargin, fullscreenButtonY);
+      ctx.lineTo(KP.layout.fullscreenMargin + 8, fullscreenButtonY);
+      ctx.lineTo(KP.layout.fullscreenMargin + 8, fullscreenButtonY - 5);
 
-      ctx.moveTo(fullscreenMargin + 22, fullscreenButtonY - 5);
-      ctx.lineTo(fullscreenMargin + 22, fullscreenButtonY);
-      ctx.lineTo(fullscreenMargin + 30, fullscreenButtonY);
+      ctx.moveTo(KP.layout.fullscreenMargin + 22, fullscreenButtonY - 5);
+      ctx.lineTo(KP.layout.fullscreenMargin + 22, fullscreenButtonY);
+      ctx.lineTo(KP.layout.fullscreenMargin + 30, fullscreenButtonY);
 
-      ctx.moveTo(fullscreenMargin + 30, fullscreenButtonY + 10);
-      ctx.lineTo(fullscreenMargin + 22, fullscreenButtonY + 10);
-      ctx.lineTo(fullscreenMargin + 22, fullscreenButtonY + 15);
+      ctx.moveTo(KP.layout.fullscreenMargin + 30, fullscreenButtonY + 10);
+      ctx.lineTo(KP.layout.fullscreenMargin + 22, fullscreenButtonY + 10);
+      ctx.lineTo(KP.layout.fullscreenMargin + 22, fullscreenButtonY + 15);
 
-      ctx.moveTo(fullscreenMargin + 8, fullscreenButtonY + 15);
-      ctx.lineTo(fullscreenMargin + 8, fullscreenButtonY + 10);
-      ctx.lineTo(fullscreenMargin, fullscreenButtonY + 10);
+      ctx.moveTo(KP.layout.fullscreenMargin + 8, fullscreenButtonY + 15);
+      ctx.lineTo(KP.layout.fullscreenMargin + 8, fullscreenButtonY + 10);
+      ctx.lineTo(KP.layout.fullscreenMargin, fullscreenButtonY + 10);
       ctx.stroke();
     }
 
@@ -1211,41 +1225,45 @@ function draw() {
       txtTime += curM < 10 ? "0" + curM + ":" : curM + ":";
       txtTime += curS < 10 ? "0" + curS : curS;
 
-      if (!isNarrowCanvas) {
+      if (!KP.layout.isNarrowCanvas) {
         txtTime += " / ";
         txtTime += durM < 10 ? "0" + durM + ":" : durM + ":";
         txtTime += durS < 10 ? "0" + durS : durS;
       }
     } else {
-      txtTime = isNarrowCanvas ? "00:00" : "00:00 / 00:00";
+      txtTime = KP.layout.isNarrowCanvas ? "00:00" : "00:00 / 00:00";
     }
     ctx.fillStyle = "white";
     ctx.font = '15px "Arial"';
     ctx.textAlign = "right";
-    ctx.fillText(txtTime, canvas.width - SEEKBAR_MARGIN, canvas.height - 20);
+    ctx.fillText(
+      txtTime,
+      canvas.width - KP.config.SEEKBAR_MARGIN,
+      canvas.height - 20
+    );
   }
 
   ctx.globalAlpha = 1;
   if (
-    videoLoading &&
-    !playAnime &&
-    !pauseAnime &&
-    !stepBackAnime &&
-    !stepForwardAnime
+    KP.video.loading &&
+    !KP.animation.play &&
+    !KP.animation.pause &&
+    !KP.animation.stepBack &&
+    !KP.animation.stepForward
   ) {
-    if (bufCurrentTime !== video.currentTime) {
-      videoLoading = false;
+    if (KP.video.bufCurrentTime !== video.currentTime) {
+      KP.video.loading = false;
     } else {
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      loadAnimeIndex++;
+      KP.animation.loadIndex++;
 
       let rad,
         count = 0;
-      if (loadAnimeIndex === 80) loadAnimeIndex = 0;
+      if (KP.animation.loadIndex === 80) KP.animation.loadIndex = 0;
       for (let theta = 0; theta < 2 * Math.PI; theta += Math.PI / 4) {
-        rad = 14 - ((loadAnimeIndex / 10 + count++) % 8) * 1.5;
+        rad = 14 - ((KP.animation.loadIndex / 10 + count++) % 8) * 1.5;
         ctx.fillStyle = "rgba(255, 255, 255, " + rad / 30 + ")";
         ctx.beginPath();
         ctx.arc(
@@ -1268,58 +1286,61 @@ function draw() {
 }
 
 function flipPlayPauseVideo() {
-  if (!playing) {
-    if (video.currentTime === video.duration - DURATION_DIF) {
+  if (!KP.playback.playing) {
+    if (video.currentTime === video.duration - KP.config.DURATION_DIF) {
       video.currentTime = 0;
     }
     video.play();
-    playAnime = true;
-    pauseAnime = false;
-    playing = true;
-    if (!onCanvas) {
-      fading = true;
-      fadeAlpha = 100;
+    KP.animation.play = true;
+    KP.animation.pause = false;
+    KP.playback.playing = true;
+    if (!KP.ui.onCanvas) {
+      KP.ui.fading = true;
+      KP.animation.fadeAlpha = 100;
     }
   } else {
     video.pause();
-    playAnime = false;
-    pauseAnime = true;
-    playing = false;
-    fading = false;
-    stopCount = 100;
+    KP.animation.play = false;
+    KP.animation.pause = true;
+    KP.playback.playing = false;
+    KP.ui.fading = false;
+    KP.animation.stopCount = 100;
   }
 
-  stepBackAnime = false;
-  stepForwardAnime = false;
-  alpha = MAX_ALPHA;
+  KP.animation.stepBack = false;
+  KP.animation.stepForward = false;
+  KP.animation.alpha = KP.config.MAX_ALPHA;
 }
 
 // Step back 10s
 function stepBack() {
   video.currentTime = Math.max(0, video.currentTime - 10);
-  playAnime = false;
-  pauseAnime = false;
-  stepBackAnime = true;
-  stepForwardAnime = false;
-  alpha = MAX_ALPHA;
+  KP.animation.play = false;
+  KP.animation.pause = false;
+  KP.animation.stepBack = true;
+  KP.animation.stepForward = false;
+  KP.animation.alpha = KP.config.MAX_ALPHA;
 }
 
 // Step forward 10s
 function stepForward() {
   if (video.currentTime < video.duration) {
     video.currentTime = Math.min(
-      video.duration - DURATION_DIF,
+      video.duration - KP.config.DURATION_DIF,
       video.currentTime + 10
     );
-    if (video.currentTime === video.duration - DURATION_DIF && playing) {
+    if (
+      video.currentTime === video.duration - KP.config.DURATION_DIF &&
+      KP.playback.playing
+    ) {
       flipPlayPauseVideo();
     }
   }
-  playAnime = false;
-  pauseAnime = false;
-  stepBackAnime = false;
-  stepForwardAnime = true;
-  alpha = MAX_ALPHA;
+  KP.animation.play = false;
+  KP.animation.pause = false;
+  KP.animation.stepBack = false;
+  KP.animation.stepForward = true;
+  KP.animation.alpha = KP.config.MAX_ALPHA;
 }
 
 // Key events
@@ -1379,360 +1400,375 @@ function keyDown(e) {
 function mouseClick(e) {
   if (getMouseX(e) === -1 || getMouseY(e) === -1) return;
 
-  if (finished) {
-    if (onReplay) {
-      finished = false;
+  if (KP.playback.finished) {
+    if (KP.ui.onReplay) {
+      KP.playback.finished = false;
       video.currentTime = 0;
       video.play();
-      playing = true;
-      playAnime = true;
-      pauseAnime = false;
-      alpha = MAX_ALPHA;
+      KP.playback.playing = true;
+      KP.animation.play = true;
+      KP.animation.pause = false;
+      KP.animation.alpha = KP.config.MAX_ALPHA;
     }
     return;
   }
 
-  press = false;
-  if (drag) {
-    drag = false;
+  KP.mouse.press = false;
+  if (KP.mouse.drag) {
+    KP.mouse.drag = false;
     return;
   }
 
-  if (dragSeekBar) {
-    dragSeekBar = false;
-    pressSeekBar = false;
-    if (resume) video.play();
+  if (KP.ui.dragSeekBar) {
+    KP.ui.dragSeekBar = false;
+    KP.ui.pressSeekBar = false;
+    if (KP.playback.resume) video.play();
 
-    if (playing) {
-      bufCurrentTime = video.currentTime;
-      videoLoading = true;
+    if (KP.playback.playing) {
+      KP.video.bufCurrentTime = video.currentTime;
+      KP.video.loading = true;
     }
 
     return;
-  } else if (pressSeekBar) {
-    pressSeekBar = false;
-    if (resume) video.play();
+  } else if (KP.ui.pressSeekBar) {
+    KP.ui.pressSeekBar = false;
+    if (KP.playback.resume) video.play();
 
-    if (playing) {
-      bufCurrentTime = video.currentTime;
-      videoLoading = true;
+    if (KP.playback.playing) {
+      KP.video.bufCurrentTime = video.currentTime;
+      KP.video.loading = true;
     }
 
     return;
   }
-  if (dragVolumeControl || onVolumeControl) {
-    dragVolumeControl = false;
-    onVolumeControl = false;
+  if (KP.ui.dragVolumeControl || KP.ui.onVolumeControl) {
+    KP.ui.dragVolumeControl = false;
+    KP.ui.onVolumeControl = false;
     return;
   }
 
-  if (dragOnController) {
-    dragOnController = false;
-    pressOnContoroller = false;
+  if (KP.ui.dragOnController) {
+    KP.ui.dragOnController = false;
+    KP.ui.pressOnController = false;
     return;
   }
 
-  if (pressPlayBackTrigger) {
+  if (KP.ui.pressPlayBackTrigger) {
     for (let i = 0; i < 7; i++) {
-      if (onPlayBacks[i]) {
+      if (KP.ui.onPlayBacks[i]) {
         video.playbackRate = 2.0 - i * 0.2;
-        onPlayBacks[i] = false;
-        pressPlayBackTrigger = false;
-        onPlayBackTrigger = false;
+        KP.ui.onPlayBacks[i] = false;
+        KP.ui.pressPlayBackTrigger = false;
+        KP.ui.onPlayBackTrigger = false;
 
         return;
       }
     }
-  } else if (onPlayBackTrigger) {
-    pressPlayBackTrigger = !pressPlayBackTrigger;
+  } else if (KP.ui.onPlayBackTrigger) {
+    KP.ui.pressPlayBackTrigger = !KP.ui.pressPlayBackTrigger;
     return;
   }
 
-  pressPlayBackTrigger = false;
+  KP.ui.pressPlayBackTrigger = false;
 
-  if (mouseMoveY > 0 && canvas.height - mouseMoveY > SEEKBAR_HEIGHT + 10) {
+  if (
+    KP.mouse.moveY > 0 &&
+    canvas.height - KP.mouse.moveY > KP.config.SEEKBAR_HEIGHT + 10
+  ) {
     flipPlayPauseVideo();
-    onPlayBackTrigger = false;
-    if (playing) {
-    } else {
-    }
-  } else if (onPlayPause) {
+    KP.ui.onPlayBackTrigger = false;
+  } else if (KP.ui.onPlayPause) {
     flipPlayPauseVideo();
-    onPlayBackTrigger = false;
-  } else if (onStepBack && !canvas.width <= 600) {
+    KP.ui.onPlayBackTrigger = false;
+  } else if (KP.ui.onStepBack && !canvas.width <= 600) {
     stepBack();
-    onPlayBackTrigger = false;
-  } else if (onStepForward && !canvas.width <= 600) {
+    KP.ui.onPlayBackTrigger = false;
+  } else if (KP.ui.onStepForward && !canvas.width <= 600) {
     stepForward();
-    onPlayBackTrigger = false;
-  } else if (onFaceTrace) {
-    onPlayBackTrigger = false;
-    if (!faceTrace) {
-      faceTrace = true;
+    KP.ui.onPlayBackTrigger = false;
+  } else if (KP.ui.onFaceTrace) {
+    KP.ui.onPlayBackTrigger = false;
+    if (!KP.ui.faceTrace) {
+      KP.ui.faceTrace = true;
     } else {
-      faceTrace = false;
+      KP.ui.faceTrace = false;
     }
-  } else if (onVolume) {
+  } else if (KP.ui.onVolume) {
     video.muted = !video.muted;
-    onPlayBackTrigger = false;
-  } else if (onTheater) {
+    KP.ui.onPlayBackTrigger = false;
+  } else if (KP.ui.onTheater) {
     flipTheaterMode();
-    onPlayBackTrigger = false;
-  } else if (onFullscreen) {
+    KP.ui.onPlayBackTrigger = false;
+  } else if (KP.ui.onFullscreen) {
     toggleFullscreen();
-    onPlayBackTrigger = false;
+    KP.ui.onPlayBackTrigger = false;
   }
 }
 
 function mouseDown(e) {
-  if (finished) return;
+  if (KP.playback.finished) return;
 
   if (getMouseX(e) === -1 || getMouseY(e) === -1) return;
 
   if (
-    pressPlayBackTrigger &&
-    mouseMoveX > theaterMargin &&
-    mouseMoveX < theaterMargin + 40 &&
-    mouseMoveY > canvas.height - 213 &&
+    KP.ui.pressPlayBackTrigger &&
+    KP.mouse.moveX > KP.layout.theaterMargin &&
+    KP.mouse.moveX < KP.layout.theaterMargin + 40 &&
+    KP.mouse.moveY > canvas.height - 213 &&
     getMouseY(e) < canvas.height - 10
   ) {
     return;
   }
 
-  if (Math.abs(canvas.height - SEEKBAR_HEIGHT - mouseMoveY) < 8) {
-    resume = playing;
+  if (Math.abs(canvas.height - KP.config.SEEKBAR_HEIGHT - KP.mouse.moveY) < 8) {
+    KP.playback.resume = KP.playback.playing;
     video.pause();
-    pressSeekBar = true;
-    mouseDragX = getMouseX(e);
+    KP.ui.pressSeekBar = true;
+    KP.mouse.dragX = getMouseX(e);
     let timeRate =
-      (mouseDragX - SEEKBAR_MARGIN) / (canvas.width - 2 * SEEKBAR_MARGIN);
+      (KP.mouse.dragX - KP.config.SEEKBAR_MARGIN) /
+      (canvas.width - 2 * KP.config.SEEKBAR_MARGIN);
     timeRate = Math.max(0, Math.min(1, timeRate));
-    video.currentTime = (video.duration - DURATION_DIF) * timeRate;
+    video.currentTime = (video.duration - KP.config.DURATION_DIF) * timeRate;
   } else if (
-    mouseMoveX > VOLUME_MARGIN + 40 &&
-    mouseMoveX < VOLUME_MARGIN + 115 &&
-    mouseMoveY > canvas.height - 35 &&
-    mouseMoveY < canvas.height - 15
+    KP.mouse.moveX > KP.layout.VOLUME_MARGIN + 40 &&
+    KP.mouse.moveX < KP.layout.VOLUME_MARGIN + 115 &&
+    KP.mouse.moveY > canvas.height - 35 &&
+    KP.mouse.moveY < canvas.height - 15
   ) {
     video.muted = false;
-    onVolumeControl = true;
-    mouseDragX = getMouseX(e);
-    let volumeBuf = (mouseDragX - VOLUME_MARGIN - 42) / 70;
+    KP.ui.KP.ui.onVolumeControl = true;
+    KP.mouse.dragX = getMouseX(e);
+    let volumeBuf = (KP.mouse.dragX - KP.layout.VOLUME_MARGIN - 42) / 70;
     volumeBuf = Math.max(0, Math.min(1, volumeBuf));
     video.volume = volumeBuf;
-  } else if (canvas.height - mouseMoveY > SEEKBAR_HEIGHT) {
-    coordLeftBuf = coordLeft;
-    coordTopBuf = coordTop;
-    press = true;
+  } else if (canvas.height - KP.mouse.moveY > KP.config.SEEKBAR_HEIGHT) {
+    KP.coords.leftBuf = KP.coords.left;
+    KP.coords.topBuf = KP.coords.top;
+    KP.mouse.press = true;
   } else {
-    pressOnContoroller = true;
+    KP.ui.pressOnController = true;
   }
 }
 
 function mouseUp(e) {
-  pressOnContoroller = false;
-  press = false;
+  KP.ui.pressOnController = false;
+  KP.mouse.press = false;
 }
 
 function mouseOut() {
   returnScroll();
-  onCanvas = false;
-  press = false;
-  pressSeekBar = false;
-  dragSeekBar = false;
-  onVolumeControl = false;
-  dragVolumeControl = false;
+  KP.ui.onCanvas = false;
+  KP.mouse.press = false;
+  KP.ui.pressSeekBar = false;
+  KP.ui.dragSeekBar = false;
+  KP.ui.onVolumeControl = false;
+  KP.ui.dragVolumeControl = false;
   offAllFlags();
   document.body.style.cursor = "auto";
 
-  if (playing) {
-    fading = true;
-    fadeAlpha = 50;
+  if (KP.playback.playing) {
+    KP.ui.fading = true;
+    KP.animation.fadeAlpha = 50;
   }
 
-  if (finished) {
-    onReplay = false;
+  if (KP.playback.finished) {
+    KP.ui.onReplay = false;
   }
 }
 
 function mouseOver() {
   noScroll();
-  onCanvas = true;
-  fadeAlpha = 50;
-  fading = false;
+  KP.ui.onCanvas = true;
+  KP.animation.fadeAlpha = 50;
+  KP.ui.fading = false;
 }
 
 function mouseMove(e) {
-  mouseXanytime = getMouseX(e);
-  mouseYanytime = getMouseY(e);
+  KP.mouse.xAnytime = getMouseX(e);
+  KP.mouse.yAnytime = getMouseY(e);
 
-  if (mouseXanytime === -1 || mouseYanytime === -1) {
+  if (KP.mouse.xAnytime === -1 || KP.mouse.yAnytime === -1) {
     document.body.style.cursor = "auto";
     offAllFlags();
     return;
   }
 
-  if (finished) {
-    mouseMoveX = getMouseX(e);
-    mouseMoveY = getMouseY(e);
+  if (KP.playback.finished) {
+    KP.mouse.moveX = getMouseX(e);
+    KP.mouse.moveY = getMouseY(e);
     const buttonWidth = 200;
     const buttonX = (canvas.width - buttonWidth) / 2;
     if (
-      mouseMoveX > buttonX &&
-      mouseMoveX < buttonX + buttonWidth &&
-      mouseMoveY > replayPosY &&
-      mouseMoveY < replayPosY + replayHeight
+      KP.mouse.moveX > buttonX &&
+      KP.mouse.moveX < buttonX + buttonWidth &&
+      KP.mouse.moveY > KP.layout.replayPosY &&
+      KP.mouse.moveY < KP.layout.replayPosY + KP.layout.replayHeight
     ) {
-      onReplay = true;
+      KP.ui.onReplay = true;
       document.body.style.cursor = "pointer";
     } else {
-      onReplay = false;
+      KP.ui.onReplay = false;
       document.body.style.cursor = "auto";
     }
     return;
   }
 
-  if (!onCanvas) onCanvas = true;
+  if (!KP.ui.onCanvas) KP.ui.onCanvas = true;
 
-  fading = false;
-  stopCount = 100;
+  KP.ui.fading = false;
+  KP.animation.stopCount = 100;
   if (
-    getMouseY(e) > canvas.height - SEEKBAR_HEIGHT - 10 &&
+    getMouseY(e) > canvas.height - KP.config.SEEKBAR_HEIGHT - 10 &&
     getMouseY(e) < canvas.height
   ) {
-    onMediaControl = true;
+    KP.ui.onMediaControl = true;
   } else {
-    onMediaControl = false;
+    KP.ui.onMediaControl = false;
   }
 
-  dragOnController =
-    pressOnContoroller &&
-    (getMouseX(e) !== mouseMoveX || getMouseY(e) !== mouseMoveY);
+  KP.ui.dragOnController =
+    KP.ui.pressOnController &&
+    (getMouseX(e) !== KP.mouse.moveX || getMouseY(e) !== KP.mouse.moveY);
 
-  if (pressSeekBar) {
-    dragSeekBar = true;
-    mouseDragX = getMouseX(e);
+  if (KP.ui.pressSeekBar) {
+    KP.ui.dragSeekBar = true;
+    KP.mouse.dragX = getMouseX(e);
     let timeRate =
-      (mouseDragX - SEEKBAR_MARGIN) / (canvas.width - 2 * SEEKBAR_MARGIN);
+      (KP.mouse.dragX - KP.config.SEEKBAR_MARGIN) /
+      (canvas.width - 2 * KP.config.SEEKBAR_MARGIN);
     timeRate = Math.max(0, Math.min(1, timeRate));
-    video.currentTime = (video.duration - DURATION_DIF) * timeRate;
-  } else if (onVolumeControl) {
-    dragVolumeControl = true;
-    mouseDragX = getMouseX(e);
-    let volumeBuf = (mouseDragX - VOLUME_MARGIN - 42) / 70;
+    video.currentTime = (video.duration - KP.config.DURATION_DIF) * timeRate;
+  } else if (KP.ui.onVolumeControl) {
+    KP.ui.dragVolumeControl = true;
+    KP.mouse.dragX = getMouseX(e);
+    let volumeBuf = (KP.mouse.dragX - KP.layout.VOLUME_MARGIN - 42) / 70;
     volumeBuf = Math.max(0, Math.min(1, volumeBuf));
     video.volume = volumeBuf;
     return;
   }
-  if (press) {
-    mouseDragX = getMouseX(e);
-    mouseDragY = getMouseY(e);
-    if (mouseDragX === mouseMoveX && mouseDragY === mouseMoveY) return;
+  if (KP.mouse.press) {
+    KP.mouse.dragX = getMouseX(e);
+    KP.mouse.dragY = getMouseY(e);
+    if (KP.mouse.dragX === KP.mouse.moveX && KP.mouse.dragY === KP.mouse.moveY)
+      return;
 
-    drag = true;
-    if (videoScale === 1) return;
+    KP.mouse.drag = true;
+    if (KP.video.scale === 1) return;
 
-    coordLeft = coordLeftBuf + (mouseMoveX - mouseDragX) / videoScale;
-    coordTop = coordTopBuf + (mouseMoveY - mouseDragY) / videoScale;
+    KP.coords.left =
+      KP.coords.leftBuf + (KP.mouse.moveX - KP.mouse.dragX) / KP.video.scale;
+    KP.coords.top =
+      KP.coords.topBuf + (KP.mouse.moveY - KP.mouse.dragY) / KP.video.scale;
 
-    coordLeft = Math.max(0, Math.min(canvas.width - coordWidth, coordLeft));
-    coordTop = Math.max(0, Math.min(canvas.height - coordHeight, coordTop));
-  } else if (!dragOnController) {
-    drag = false;
-    mouseMoveX = getMouseX(e);
-    mouseMoveY = getMouseY(e);
+    KP.coords.left = Math.max(
+      0,
+      Math.min(canvas.width - KP.coords.width, KP.coords.left)
+    );
+    KP.coords.top = Math.max(
+      0,
+      Math.min(canvas.height - KP.coords.height, KP.coords.top)
+    );
+  } else if (!KP.ui.dragOnController) {
+    KP.mouse.drag = false;
+    KP.mouse.moveX = getMouseX(e);
+    KP.mouse.moveY = getMouseY(e);
 
     const speedMenuStartY = canvas.height - 213;
     const speedMenuEndY = canvas.height - 10;
 
     if (
-      pressPlayBackTrigger &&
-      mouseMoveX > theaterMargin &&
-      mouseMoveX < theaterMargin + 40 &&
-      mouseMoveY > speedMenuStartY &&
+      KP.ui.pressPlayBackTrigger &&
+      KP.mouse.moveX > KP.layout.theaterMargin &&
+      KP.mouse.moveX < KP.layout.theaterMargin + 40 &&
+      KP.mouse.moveY > speedMenuStartY &&
       getMouseY(e) < speedMenuEndY
     ) {
       document.body.style.cursor = "pointer";
       offAllFlags();
-      onPlayBackTrigger = true;
-      onPlayBacks[Math.floor((mouseMoveY - speedMenuStartY) / 25)] = true;
-    } else if (Math.abs(canvas.height - SEEKBAR_HEIGHT - mouseMoveY) < 8) {
-      document.body.style.cursor = "pointer";
-      if (!onSeekBar) seekBallRad = 0;
-      offAllFlags();
-      onSeekBar = true;
+      KP.ui.onPlayBackTrigger = true;
+      KP.ui.onPlayBacks[
+        Math.floor((KP.mouse.moveY - speedMenuStartY) / 25)
+      ] = true;
     } else if (
-      mouseMoveX > SEEKBAR_MARGIN &&
-      mouseMoveX < 3 * SEEKBAR_MARGIN + 5 &&
-      mouseMoveY > canvas.height - SEEKBAR_HEIGHT + 10 &&
+      Math.abs(canvas.height - KP.config.SEEKBAR_HEIGHT - KP.mouse.moveY) < 8
+    ) {
+      document.body.style.cursor = "pointer";
+      if (!KP.ui.onSeekBar) KP.animation.seekBallRad = 0;
+      offAllFlags();
+      KP.ui.onSeekBar = true;
+    } else if (
+      KP.mouse.moveX > KP.config.SEEKBAR_MARGIN &&
+      KP.mouse.moveX < 3 * KP.config.SEEKBAR_MARGIN + 5 &&
+      KP.mouse.moveY > canvas.height - KP.config.SEEKBAR_HEIGHT + 10 &&
       getMouseY(e) < canvas.height
     ) {
       document.body.style.cursor = "pointer";
       offAllFlags();
-      onPlayPause = true;
+      KP.ui.onPlayPause = true;
     } else if (
-      !isNarrowCanvas &&
-      mouseMoveX > STEP_BACK_MARGIN - 15 &&
-      mouseMoveX < STEP_BACK_MARGIN + 13 &&
-      mouseMoveY > canvas.height - SEEKBAR_HEIGHT + 10 &&
+      !KP.layout.isNarrowCanvas &&
+      KP.mouse.moveX > KP.config.STEP_BACK_MARGIN - 15 &&
+      KP.mouse.moveX < KP.config.STEP_BACK_MARGIN + 13 &&
+      KP.mouse.moveY > canvas.height - KP.config.SEEKBAR_HEIGHT + 10 &&
       getMouseY(e) < canvas.height
     ) {
       document.body.style.cursor = "pointer";
       offAllFlags();
-      onStepBack = true;
+      KP.ui.onStepBack = true;
     } else if (
-      !isNarrowCanvas &&
-      mouseMoveX > STEP_FORWARD_MARGIN - 15 &&
-      mouseMoveX < STEP_FORWARD_MARGIN + 13 &&
-      mouseMoveY > canvas.height - SEEKBAR_HEIGHT + 10 &&
+      !KP.layout.isNarrowCanvas &&
+      KP.mouse.moveX > KP.config.STEP_FORWARD_MARGIN - 15 &&
+      KP.mouse.moveX < KP.config.STEP_FORWARD_MARGIN + 13 &&
+      KP.mouse.moveY > canvas.height - KP.config.SEEKBAR_HEIGHT + 10 &&
       getMouseY(e) < canvas.height
     ) {
       document.body.style.cursor = "pointer";
       offAllFlags();
-      onStepForward = true;
+      KP.ui.onStepForward = true;
     } else if (
-      mouseMoveX > VOLUME_MARGIN - 7 &&
-      mouseMoveX < VOLUME_MARGIN + 32 &&
-      mouseMoveY > canvas.height - SEEKBAR_HEIGHT + 10 &&
+      KP.mouse.moveX > KP.layout.VOLUME_MARGIN - 7 &&
+      KP.mouse.moveX < KP.layout.VOLUME_MARGIN + 32 &&
+      KP.mouse.moveY > canvas.height - KP.config.SEEKBAR_HEIGHT + 10 &&
       getMouseY(e) < canvas.height
     ) {
       document.body.style.cursor = "pointer";
       offAllFlags();
-      onVolume = true;
+      KP.ui.onVolume = true;
     } else if (
-      mouseMoveX > VOLUME_MARGIN + 40 &&
-      mouseMoveX < VOLUME_MARGIN + 115 &&
-      mouseMoveY > canvas.height - 35 &&
-      mouseMoveY < canvas.height - 15
+      KP.mouse.moveX > KP.layout.VOLUME_MARGIN + 40 &&
+      KP.mouse.moveX < KP.layout.VOLUME_MARGIN + 115 &&
+      KP.mouse.moveY > canvas.height - 35 &&
+      KP.mouse.moveY < canvas.height - 15
     ) {
       document.body.style.cursor = "pointer";
     } else if (
-      mouseMoveX > FACE_TRACE_MARGIN - 15 &&
-      mouseMoveX < FACE_TRACE_MARGIN + 13 &&
-      mouseMoveY > canvas.height - SEEKBAR_HEIGHT + 10 &&
+      KP.mouse.moveX > KP.config.FACE_TRACE_MARGIN - 15 &&
+      KP.mouse.moveX < KP.config.FACE_TRACE_MARGIN + 13 &&
+      KP.mouse.moveY > canvas.height - KP.config.SEEKBAR_HEIGHT + 10 &&
       getMouseY(e) < canvas.height
     ) {
       document.body.style.cursor = "pointer";
       offAllFlags();
-      onFaceTrace = true;
+      KP.ui.onFaceTrace = true;
     } else if (
-      mouseMoveX > theaterMargin &&
-      mouseMoveX < theaterMargin + 40 &&
-      mouseMoveY > canvas.height - SEEKBAR_HEIGHT + 10 &&
+      KP.mouse.moveX > KP.layout.theaterMargin &&
+      KP.mouse.moveX < KP.layout.theaterMargin + 40 &&
+      KP.mouse.moveY > canvas.height - KP.config.SEEKBAR_HEIGHT + 10 &&
       getMouseY(e) < canvas.height - 10
     ) {
       document.body.style.cursor = "pointer";
       offAllFlags();
-      onPlayBackTrigger = true;
+      KP.ui.onPlayBackTrigger = true;
     } else if (
-      mouseMoveX > fullscreenMargin - 6 &&
-      mouseMoveX < fullscreenMargin + 36 &&
-      mouseMoveY > canvas.height - SEEKBAR_HEIGHT + 10 &&
+      KP.mouse.moveX > KP.layout.fullscreenMargin - 6 &&
+      KP.mouse.moveX < KP.layout.fullscreenMargin + 36 &&
+      KP.mouse.moveY > canvas.height - KP.config.SEEKBAR_HEIGHT + 10 &&
       getMouseY(e) < canvas.height
     ) {
       document.body.style.cursor = "pointer";
       offAllFlags();
-      onFullscreen = true;
+      KP.ui.onFullscreen = true;
     } else {
       document.body.style.cursor = "auto";
       offAllFlags();
@@ -1826,156 +1862,165 @@ function getMouseY(e) {
 }
 
 function offAllFlags() {
-  onSeekBar = false;
-  onPlayPause = false;
-  onStepBack = false;
-  onStepForward = false;
-  onFaceTrace = false;
-  onVolume = false;
-  onVolumeControl = false;
-  onTheater = false;
-  onPlayBackTrigger = false;
-  onFullscreen = false;
+  KP.ui.onSeekBar = false;
+  KP.ui.onPlayPause = false;
+  KP.ui.onStepBack = false;
+  KP.ui.onStepForward = false;
+  KP.ui.onFaceTrace = false;
+  KP.ui.onVolume = false;
+  KP.ui.onVolumeControl = false;
+  KP.ui.onTheater = false;
+  KP.ui.onPlayBackTrigger = false;
+  KP.ui.onFullscreen = false;
 
-  onPlayBacks.fill(false);
+  KP.ui.onPlayBacks.fill(false);
 }
 
 // Canvas zoom
-let mousePrevX = -1;
-let timeStamp = 0;
+// mousePrevX now in KP.mouse.prevX
+// timeStamp moved to KP.system.timeStamp
 function canvasZoom(e) {
-  if (finished) return;
+  if (KP.playback.finished) return;
 
-  mouseX = getMouseX(e);
-  mouseY = getMouseY(e);
-  if (mousePrevX == -1) mousePrevX = mouseX;
+  KP.mouse.x = getMouseX(e);
+  KP.mouse.y = getMouseY(e);
+  if (KP.mouse.prevX == -1) KP.mouse.prevX = KP.mouse.x;
 
   let zoomChange = true;
 
-  if (e.timeStamp - timeStamp < 30) {
+  if (e.timeStamp - KP.system.timeStamp < 30) {
     return;
   } else {
-    timeStamp = e.timeStamp;
+    KP.system.timeStamp = e.timeStamp;
   }
 
   const isZoomIn = e.wheelDelta > 0;
 
   if (isZoomIn) {
-    videoScaleIndex++;
-    videoScale = 1 + videoScaleIndex * 0.2;
-    if (videoScale > MAX_SCALE) {
-      videoScale = MAX_SCALE;
-      videoScaleIndex--;
+    KP.video.scaleIndex++;
+    KP.video.scale = 1 + KP.video.scaleIndex * 0.2;
+    if (KP.video.scale > KP.config.MAX_SCALE) {
+      KP.video.scale = KP.config.MAX_SCALE;
+      KP.video.scaleIndex--;
       zoomChange = false;
     }
   } else {
-    videoScaleIndex--;
-    videoScale = 1 + videoScaleIndex * 0.2;
-    if (videoScale < 1) {
-      videoScale = 1;
-      videoScaleIndex = 0;
-      coordLeft = 0;
-      coordWidth = canvas.width;
-      coordTop = 0;
-      coordHeight = canvas.height;
+    KP.video.scaleIndex--;
+    KP.video.scale = 1 + KP.video.scaleIndex * 0.2;
+    if (KP.video.scale < 1) {
+      KP.video.scale = 1;
+      KP.video.scaleIndex = 0;
+      KP.coords.left = 0;
+      KP.coords.width = canvas.width;
+      KP.coords.top = 0;
+      KP.coords.height = canvas.height;
       return;
     }
   }
 
   if (zoomChange) {
-    const factor = 0.2 / (videoScale * (videoScale + (isZoomIn ? -0.2 : 0.2)));
-    coordLeft += isZoomIn ? mouseX * factor : -(mouseX * factor);
-    coordTop += isZoomIn ? mouseY * factor : -(mouseY * factor);
+    const factor =
+      0.2 / (KP.video.scale * (KP.video.scale + (isZoomIn ? -0.2 : 0.2)));
+    KP.coords.left += isZoomIn ? KP.mouse.x * factor : -(KP.mouse.x * factor);
+    KP.coords.top += isZoomIn ? KP.mouse.y * factor : -(KP.mouse.y * factor);
 
-    coordWidth = canvas.width / videoScale;
-    coordHeight = canvas.height / videoScale;
+    KP.coords.width = canvas.width / KP.video.scale;
+    KP.coords.height = canvas.height / KP.video.scale;
 
-    coordLeft = Math.max(0, Math.min(canvas.width - coordWidth, coordLeft));
-    coordTop = Math.max(0, Math.min(canvas.height - coordHeight, coordTop));
+    KP.coords.left = Math.max(
+      0,
+      Math.min(canvas.width - KP.coords.width, KP.coords.left)
+    );
+    KP.coords.top = Math.max(
+      0,
+      Math.min(canvas.height - KP.coords.height, KP.coords.top)
+    );
   }
 
   if (zoomChange) {
-    imageDifX = coordLeft + (coordWidth * mouseX) / canvas.width;
-    imageDifY = coordTop + (coordHeight * mouseY) / canvas.height;
-    if (imageDifX < 0) {
-      imageDifX = 0;
+    KP.mouse.imageDifX =
+      KP.coords.left + (KP.coords.width * KP.mouse.x) / canvas.width;
+    KP.mouse.imageDifY =
+      KP.coords.top + (KP.coords.height * KP.mouse.y) / canvas.height;
+    if (KP.mouse.imageDifX < 0) {
+      KP.mouse.imageDifX = 0;
     }
-    if (imageDifX > canvas.width) {
-      imageDifX = canvas.width;
+    if (KP.mouse.imageDifX > canvas.width) {
+      KP.mouse.imageDifX = canvas.width;
     }
-    if (imageDifY < 0) {
-      imageDifY = 0;
+    if (KP.mouse.imageDifY < 0) {
+      KP.mouse.imageDifY = 0;
     }
-    if (imageDifY > canvas.height) {
-      imageDifY = canvas.height;
+    if (KP.mouse.imageDifY > canvas.height) {
+      KP.mouse.imageDifY = canvas.height;
     }
   }
 
-  mousePrevX = mouseX;
+  KP.mouse.prevX = KP.mouse.x;
 }
 
 function toggleFullscreen() {
-  if (!isFullscreenMode) {
-    scrollPosBuf = window.pageYOffset;
-    canvasWidthBuf = canvas.clientWidth;
+  if (!KP.ui.isFullscreenMode) {
+    KP.layout.scrollPosBuf = window.pageYOffset;
+    KP.layout.canvasWidthBuf = canvas.clientWidth;
 
     goFullScreen(canvas);
-    isFullscreenMode = true;
+    KP.ui.isFullscreenMode = true;
 
     let maxWidth = 0;
     if (
-      (window.innerWidth * VIDEO_HEIGHT) / VIDEO_WIDTH <=
+      (window.innerWidth * KP.video.HEIGHT) / KP.video.WIDTH <=
       window.innerHeight
     ) {
       maxWidth = window.innerWidth;
     } else {
-      maxWidth = (window.innerHeight * VIDEO_WIDTH) / VIDEO_HEIGHT - 10;
+      maxWidth = (window.innerHeight * KP.video.WIDTH) / KP.video.HEIGHT - 10;
     }
 
     if (canvas) canvas.style.maxWidth = maxWidth + "px";
   } else {
     cancelFullScreen();
-    isFullscreenMode = false;
+    KP.ui.isFullscreenMode = false;
     const mainEl = document.getElementById("main");
     if (mainEl) mainEl.style.background = "white";
-    if (canvas) canvas.style.maxWidth = originalMaxWidth;
+    if (canvas) canvas.style.maxWidth = KP.layout.originalMaxWidth;
   }
-  onFullscreen = false;
+  KP.ui.onFullscreen = false;
   init();
 }
 
-let scrollPosBuf = 0;
-let canvasWidthBuf = 0;
+// scrollPosBuf moved to KP.layout.scrollPosBuf
+// canvasWidthBuf moved to KP.layout.canvasWidthBuf
 function flipTheaterMode() {
-  if (!theaterMode) {
-    scrollPosBuf = window.pageYOffset;
-    canvasWidthBuf = canvas.clientWidth;
+  if (!KP.ui.theaterMode) {
+    KP.layout.scrollPosBuf = window.pageYOffset;
+    KP.layout.canvasWidthBuf = canvas.clientWidth;
 
     goFullScreen(canvas);
 
     let maxWidth = 0;
     if (
-      (window.innerWidth * VIDEO_HEIGHT) / VIDEO_WIDTH <=
+      (window.innerWidth * KP.video.HEIGHT) / KP.video.WIDTH <=
       window.innerHeight
     ) {
       maxWidth = window.innerWidth;
     } else {
-      maxWidth = (window.innerHeight * VIDEO_WIDTH) / VIDEO_HEIGHT - 10;
+      maxWidth = (window.innerHeight * KP.video.WIDTH) / KP.video.HEIGHT - 10;
     }
 
     if (canvas) canvas.style.maxWidth = maxWidth + "px";
-    theaterMode = true;
+    KP.ui.theaterMode = true;
   } else {
     cancelFullScreen(canvas);
 
-    theaterTmp = true;
-    theaterMode = false;
+    KP.ui.theaterTmp = true;
+    KP.ui.theaterMode = false;
 
     const mainEl = document.getElementById("main");
     if (mainEl) mainEl.style.background = "white";
-    if (canvas) canvas.style.maxWidth = originalMaxWidth;
+    if (canvas) canvas.style.maxWidth = KP.layout.originalMaxWidth;
   }
-  onTheater = false;
+  KP.ui.onTheater = false;
 }
 
 function noScroll() {
@@ -2058,11 +2103,11 @@ if (video) {
 }
 if (canvas) {
   if (canvas.style.maxWidth && canvas.style.maxWidth !== "") {
-    originalMaxWidth = canvas.style.maxWidth;
+    KP.layout.originalMaxWidth = canvas.style.maxWidth;
   } else {
     const computedStyle = window.getComputedStyle(canvas);
     if (computedStyle.maxWidth && computedStyle.maxWidth !== "none") {
-      originalMaxWidth = computedStyle.maxWidth;
+      KP.layout.originalMaxWidth = computedStyle.maxWidth;
     }
   }
 
@@ -2078,8 +2123,10 @@ if (typeof debug === "undefined") {
   window.debug = false;
 }
 
-VIDEO_WIDTH = video.videoWidth || 1920;
-VIDEO_HEIGHT = video.videoHeight || 1080;
-metadataLoaded = true;
+// Initialize with default or actual dimensions
+KP.video.WIDTH = video.videoWidth || 1920;
+KP.video.HEIGHT = video.videoHeight || 1080;
+
+// Initial setup
 init();
 draw();
